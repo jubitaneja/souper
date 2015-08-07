@@ -28,6 +28,7 @@
 #include "souper/SMTLIB2/Solver.h"
 #include "souper/Tool/GetSolverFromArgs.h"
 #include "souper/Tool/CandidateMapUtils.h"
+#include "llvm/Analysis/ScalarEvolution.h"
 
 using namespace souper;
 using namespace llvm;
@@ -145,8 +146,9 @@ public:
     CandidateMap CandMap;
 
     LoopInfo *LI = &getAnalysis<LoopInfoWrapperPass>().getLoopInfo();
+    ScalarEvolution *SE;
 
-    FunctionCandidateSet CS = ExtractCandidatesFromPass(&F, LI, IC, EBC);
+    FunctionCandidateSet CS = ExtractCandidatesFromPass(&F, LI, SE, IC, EBC);
 
     std::string FunctionName;
     if (F.hasLocalLinkage()) {

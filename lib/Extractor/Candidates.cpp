@@ -35,11 +35,16 @@
 #include <sstream>
 #include <unordered_set>
 #include <tuple>
+#include "llvm/Analysis/ScalarEvolution.h"
 
 static llvm::cl::opt<bool> ExploitBPCs(
     "souper-exploit-blockpcs",
     llvm::cl::desc("Exploit block path conditions (default=true)"),
     llvm::cl::init(true));
+static llvm::cl::opt<bool> HarvestConstRange(
+    "souper-harvest-const-range",
+    llvm::cl::desc("Harvest constant range (default=false)"),
+    llvm::cl::init(false));
 
 using namespace llvm;
 using namespace klee;
@@ -77,12 +82,13 @@ namespace {
 
 struct ExprBuilder {
   ExprBuilder(const ExprBuilderOptions &Opts, Module *M, const LoopInfo *LI,
-              InstContext &IC, ExprBuilderContext &EBC)
-      : Opts(Opts), DL(M->getDataLayout()), LI(LI), IC(IC), EBC(EBC) {}
+              InstContext &IC, ExprBuilderContext &EBC, ScalarEvolution *SE)
+      : Opts(Opts), DL(M->getDataLayout()), LI(LI), IC(IC), EBC(EBC), SE(SE) {}
 
   const ExprBuilderOptions &Opts;
   const DataLayout &DL;
   const LoopInfo *LI;
+  ScalarEvolution *SE;
   InstContext &IC;
   ExprBuilderContext &EBC;
 
@@ -151,6 +157,18 @@ Inst *ExprBuilder::makeArrayRead(Value *V) {
   if (Opts.NamedArrays)
     Name = V->getName();
   unsigned Width = DL.getTypeSizeInBits(V->getType());
+  if (HarvestConstRange) {
+    ConstantRange Range(Width, 1);
+    APInt Low(Width, 0, false), High(Width, 0, false);
+    if (SE->isSCEVable(V->getType())) {
+      const SCEV *S = SE->getSCEV(V);
+      if (S) {
+        Range = SE->getSignedRange(S);
+        Low = Range.getLower();
+        High = Range.getUpper();
+      }
+    }
+  }
   return IC.createVar(Width, Name);
 }
 
@@ -675,10 +693,11 @@ std::tuple<BlockPCs, std::vector<InstMapping>> GetRelevantPCs(
 }
 
 void ExtractExprCandidates(Function &F, const LoopInfo *LI,
+                           ScalarEvolution *SE,
                            const ExprBuilderOptions &Opts, InstContext &IC,
                            ExprBuilderContext &EBC,
                            FunctionCandidateSet &Result) {
-  ExprBuilder EB(Opts, F.getParent(), LI, IC, EBC);
+  ExprBuilder EB(Opts, F.getParent(), LI, IC, EBC, SE);
 
   for (auto &BB : F) {
     std::unique_ptr<BlockCandidateSet> BCS(new BlockCandidateSet);
@@ -719,12 +738,15 @@ public:
 
   void getAnalysisUsage(AnalysisUsage &Info) const {
     Info.addRequired<LoopInfoWrapperPass>();
+    Info.addRequired<ScalarEvolution>();
     Info.setPreservesAll();
   }
 
   bool runOnFunction(Function &F) {
     LoopInfo *LI = &getAnalysis<LoopInfoWrapperPass>().getLoopInfo();
-    ExtractExprCandidates(F, LI, Opts, IC, EBC, Result);
+    ScalarEvolution *SE = &getAnalysis<ScalarEvolution>();
+    ExtractExprCandidates(F, LI, SE, Opts, IC, EBC, Result);
+    //ExtractExprCandidates(F, LI, Opts, IC, EBC, Result);
     return false;
   }
 };
@@ -734,10 +756,10 @@ char ExtractExprCandidatesPass::ID = 0;
 }
 
 FunctionCandidateSet souper::ExtractCandidatesFromPass(
-    Function *F, const LoopInfo *LI, InstContext &IC, ExprBuilderContext &EBC,
-    const ExprBuilderOptions &Opts) {
+    Function *F, const LoopInfo *LI, ScalarEvolution *SE, InstContext &IC,
+    ExprBuilderContext &EBC, const ExprBuilderOptions &Opts) {
   FunctionCandidateSet Result;
-  ExtractExprCandidates(*F, LI, Opts, IC, EBC, Result);
+  ExtractExprCandidates(*F, LI, SE, Opts, IC, EBC, Result);
   return Result;
 }
 

@@ -21,6 +21,7 @@
 #include <map>
 #include <memory>
 #include <vector>
+#include "llvm/Analysis/ScalarEvolution.h"
 
 namespace llvm {
 
@@ -113,7 +114,8 @@ struct ExprBuilderContext {
 };
 
 FunctionCandidateSet ExtractCandidatesFromPass(
-    llvm::Function *F, const llvm::LoopInfo *LI, InstContext &IC,
+    llvm::Function *F, const llvm::LoopInfo *LI,
+    llvm::ScalarEvolution *SE, InstContext &IC,
     ExprBuilderContext &EBC,
     const ExprBuilderOptions &Opts = ExprBuilderOptions());
 
