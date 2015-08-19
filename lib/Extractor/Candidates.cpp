@@ -35,12 +35,17 @@
 #include <sstream>
 #include <unordered_set>
 #include <tuple>
+#include "llvm/Analysis/ValueTracking.h"
 #include "llvm/Analysis/ScalarEvolution.h"
 
 static llvm::cl::opt<bool> ExploitBPCs(
     "souper-exploit-blockpcs",
     llvm::cl::desc("Exploit block path conditions (default=true)"),
     llvm::cl::init(true));
+static llvm::cl::opt<bool> HarvestKnownBits(
+    "souper-harvest-known-bits",
+    llvm::cl::desc("Perform known bits analysis (default=false)"),
+    llvm::cl::init(false));
 static llvm::cl::opt<bool> HarvestConstRange(
     "souper-harvest-const-range",
     llvm::cl::desc("Harvest constant range (default=false)"),
@@ -157,6 +162,11 @@ Inst *ExprBuilder::makeArrayRead(Value *V) {
   if (Opts.NamedArrays)
     Name = V->getName();
   unsigned Width = DL.getTypeSizeInBits(V->getType());
+  APInt KnownZero(Width, 0, false), KnownOne(Width, 0, false);
+  if (HarvestKnownBits)
+    if (V->getType()->isIntOrIntVectorTy() ||
+        V->getType()->getScalarType()->isPointerTy())
+      computeKnownBits(V, KnownZero, KnownOne, DL);
   if (HarvestConstRange) {
     ConstantRange Range(Width, 1);
     APInt Low(Width, 0, false), High(Width, 0, false);
@@ -169,7 +179,7 @@ Inst *ExprBuilder::makeArrayRead(Value *V) {
       }
     }
   }
-  return IC.createVar(Width, Name);
+  return IC.createVar(Width, Name, KnownZero, KnownOne);
 }
 
 Inst *ExprBuilder::buildConstant(Constant *c) {
