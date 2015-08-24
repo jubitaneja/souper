@@ -119,6 +119,8 @@ struct Inst : llvm::FoldingSetNode {
   static int getCost(Kind K);
   llvm::APInt KnownZeros;
   llvm::APInt KnownOnes;
+  llvm::APInt Lower;
+  llvm::APInt Upper;
 };
 
 /// A mapping from an Inst to a replacement. This may either represent a
@@ -180,7 +182,10 @@ public:
   Inst *getUntypedConst(const llvm::APInt &I);
 
   Inst *createVar(unsigned Width, llvm::StringRef Name,
-                  llvm::APInt Zero=llvm::APInt(1, 0, false), llvm::APInt One=llvm::APInt(1, 0, false));
+                  llvm::APInt Zero=llvm::APInt(1, 0, false),
+                  llvm::APInt One=llvm::APInt(1, 0, false),
+                  llvm::APInt Lower=llvm::APInt(1, 0, false),
+                  llvm::APInt Upper=llvm::APInt(1, 0, false));
   Block *createBlock(unsigned Preds);
 
   Inst *getPhi(Block *B, const std::vector<Inst *> &Ops);

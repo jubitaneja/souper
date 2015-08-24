@@ -162,24 +162,24 @@ Inst *ExprBuilder::makeArrayRead(Value *V) {
   if (Opts.NamedArrays)
     Name = V->getName();
   unsigned Width = DL.getTypeSizeInBits(V->getType());
-  APInt KnownZero(Width, 0, false), KnownOne(Width, 0, false);
+  APInt KnownZero(Width, 0, false), KnownOne(Width, 0, false),
+        Lower(Width, 0, false), Upper(Width, 0, false);
   if (HarvestKnownBits)
     if (V->getType()->isIntOrIntVectorTy() ||
         V->getType()->getScalarType()->isPointerTy())
       computeKnownBits(V, KnownZero, KnownOne, DL);
   if (HarvestConstRange) {
     ConstantRange Range(Width, 1);
-    APInt Low(Width, 0, false), High(Width, 0, false);
     if (SE->isSCEVable(V->getType())) {
       const SCEV *S = SE->getSCEV(V);
       if (S) {
         Range = SE->getSignedRange(S);
-        Low = Range.getLower();
-        High = Range.getUpper();
+        Lower = Range.getLower();
+        Upper = Range.getUpper();
       }
     }
   }
-  return IC.createVar(Width, Name, KnownZero, KnownOne);
+  return IC.createVar(Width, Name, KnownZero, KnownOne, Lower, Upper);
 }
 
 Inst *ExprBuilder::buildConstant(Constant *c) {

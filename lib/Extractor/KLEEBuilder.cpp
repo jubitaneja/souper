@@ -75,6 +75,7 @@ struct ExprBuilder {
   std::map<Inst *, ref<Expr>> UBExprMap;
   std::map<Inst *, ref<Expr>> ZeroBitsMap;
   std::map<Inst *, ref<Expr>> OneBitsMap;
+  std::map<Inst *, ref<Expr>> RangeMap;
   std::map<Block *, BlockPCPredMap> BlockPCMap;
   std::vector<std::unique_ptr<Array>> &Arrays;
   std::vector<Inst *> &ArrayVars;
@@ -108,6 +109,7 @@ struct ExprBuilder {
   ref<Expr> getInstMapping(const InstMapping &IM);
   ref<Expr> getZeroBitsMapping(Inst *I);
   ref<Expr> getOneBitsMapping(Inst *I);
+  ref<Expr> getRangeMapping(Inst *I);
   std::vector<ref<Expr >> getBlockPredicates(Inst *I);
   ref<Expr> getUBInstCondition();
   ref<Expr> getBlockPCs();
@@ -152,6 +154,9 @@ ref<Expr> ExprBuilder::makeSizedArrayRead(unsigned Width, StringRef Name,
     ref<Expr> VarAndOnes = AndExpr::create(Var, Ones);
     OneBitsMap[Origin] = EqExpr::create(VarAndOnes, Ones);
   }
+  if (Origin && Origin->K == Inst::Var && (Origin->Upper - Origin->Lower).getBoolValue())
+    RangeMap[Origin] = AndExpr::create(UleExpr::create(klee::ConstantExpr::alloc(Origin->Lower), Var),
+                                       UleExpr::create(Var, klee::ConstantExpr::alloc(Origin->Upper)));
   return Var;
 }
 
@@ -948,6 +953,10 @@ ref<Expr> ExprBuilder::getOneBitsMapping(Inst *I) {
   return OneBitsMap[I];
 }
 
+ref<Expr> ExprBuilder::getRangeMapping(Inst *I) {
+  return RangeMap[I];
+}
+
 // Return an expression which must be proven valid for the candidate to apply.
 CandidateExpr souper::GetCandidateExprForReplacement(
     const BlockPCs &BPCs, const std::vector<InstMapping> &PCs,
@@ -963,6 +972,8 @@ CandidateExpr souper::GetCandidateExprForReplacement(
       Ante = AndExpr::create(Ante, EB.getZeroBitsMapping(I));
       Ante = AndExpr::create(Ante, EB.getOneBitsMapping(I));
     }
+    if (I && (I->Upper - I->Lower).getBoolValue())
+      Ante = AndExpr::create(Ante, EB.getRangeMapping(I));
   }
   // Build PCs
   for (const auto &PC : PCs) {

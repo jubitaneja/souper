@@ -158,9 +158,24 @@ std::string ReplacementContext::printInst(Inst *I, llvm::raw_ostream &Out,
       Out << "%" << InstName << ":i" << I->Width << " = "
           << Inst::getKindName(I->K);
       if (I->K == Inst::Var && (I->KnownZeros.getBoolValue() ||
-                                I->KnownOnes.getBoolValue())) {
+                                I->KnownOnes.getBoolValue()) &&
+                                ((I->Upper - I->Lower).getBoolValue())) {
+        Out << " (" << Inst::getKnownBitsString(I->KnownZeros, I->KnownOnes)
+            << ")" << " (";
+        I->Lower.print(SS, false);
+        Out << "..";
+        I->Upper.print(SS, false);
+        Out << ")" << OpsSS.str();
+      } else if (I->K == Inst::Var && (I->KnownZeros.getBoolValue() ||
+                                       I->KnownOnes.getBoolValue())) {
         Out << " (" << Inst::getKnownBitsString(I->KnownZeros, I->KnownOnes)
             << ")" << OpsSS.str();
+      } else if (I->K == Inst::Var && ((I->Upper - I->Lower).getBoolValue())) {
+        Out << " (";
+        I->Lower.print(SS, false);
+        Out << "..";
+        I->Upper.print(SS, false);
+        Out << ")" << OpsSS.str();
       } else {
         Out << OpsSS.str();
       }
@@ -510,7 +525,8 @@ Inst *InstContext::getUntypedConst(const llvm::APInt &Val) {
 }
 
 Inst *InstContext::createVar(unsigned Width, llvm::StringRef Name,
-                             llvm::APInt Zero, llvm::APInt One) {
+                             llvm::APInt Zero, llvm::APInt One,
+                             llvm::APInt Lower, llvm::APInt Upper) {
   auto &InstList = VarInstsByWidth[Width];
   unsigned Number = InstList.size();
   auto I = new Inst;
@@ -522,6 +538,8 @@ Inst *InstContext::createVar(unsigned Width, llvm::StringRef Name,
   I->Name = Name;
   I->KnownZeros = Zero;
   I->KnownOnes = One;
+  I->Lower = Lower;
+  I->Upper = Upper;
   return I;
 }
 

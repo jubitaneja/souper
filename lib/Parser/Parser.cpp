@@ -40,6 +40,7 @@ struct Token {
     Int,
     UntypedInt,
     KnownBits,
+    ConstantRange,
     Eof,
   };
 
@@ -50,6 +51,8 @@ struct Token {
   StringRef Name;
   unsigned Width;
   std::string PatternString;
+  std::string Lower;
+  std::string Upper;
 
   StringRef str() const {
     return StringRef(Pos, Len);
@@ -205,6 +208,7 @@ FoundChar:
                         StringRef(NumBegin, NumEnd - NumBegin), 10)};
   }
 
+#if 0
   if (*Begin == '(') {
     ++Begin;
     const char *NumBegin = Begin;
@@ -218,9 +222,166 @@ FoundChar:
     T.K = Token::KnownBits;
     T.Pos = NumBegin;
     T.Len = size_t(Begin - NumBegin);
-    T.PatternString = StringRef(NumBegin, Begin - NumBegin); 
+    T.PatternString = StringRef(NumBegin, Begin - NumBegin);
     ++Begin;
     return T;
+  }
+#endif
+  if (*Begin == '(') {
+    ++Begin;
+    const char *NumBegin = Begin;
+    while (*Begin == '0' || *Begin == '1' || *Begin == 'x')
+      ++Begin;
+    if (NumBegin == Begin) {
+      if (*Begin == '-') {
+        ++Begin;
+        while (*Begin >= '0' && *Begin <= '9')
+          ++Begin;
+        const char *LowerEnd = Begin;
+        if (*Begin != '.') {
+          ErrStr = "expected .. for range";
+          return Token{Token::Error, Begin, 0, APInt()};
+        }
+        ++Begin;
+        if (*Begin != '.') {
+          ErrStr = "expected .. for range";
+          return Token{Token::Error, Begin, 0, APInt()};
+        }
+        ++Begin;
+        const char *UpperBegin = Begin;
+        if (*Begin == '-' || (*Begin >= '0' && *Begin <= '9')) {
+          do {
+            ++Begin;
+          } while(*Begin >= '0' && *Begin <= '9');
+        }
+        const char *UpperEnd = Begin;
+        if (*Begin != ')') {
+          ErrStr = "expected ')' for range";
+          return Token{Token::Error, Begin, 0, APInt()};
+        }
+        Token T;
+        T.K = Token::ConstantRange;
+        T.Pos = NumBegin;
+        T.Len = size_t(Begin - NumBegin);
+        T.Lower = StringRef(NumBegin, LowerEnd - NumBegin);
+        T.Upper = StringRef(UpperBegin, UpperEnd - UpperBegin);
+        ++Begin;
+        return T;
+        // add all attributes of token for CR
+      } else if (*Begin >= '0' && *Begin <= '9') {
+        //const char *LowerBegin = Begin; //may be deleted because NumBegin can take care of it
+        while (*Begin >= '0' && *Begin <= '9')
+          ++Begin;
+        const char *LowerEnd = Begin;
+        if (*Begin != '.') {
+          ErrStr = "expected .. for range";
+          return Token{Token::Error, Begin, 0, APInt()};
+        }
+        ++Begin;
+        if (*Begin != '.') {
+          ErrStr = "expected .. for range";
+          return Token{Token::Error, Begin, 0, APInt()};
+        }
+        ++Begin;
+        const char *UpperBegin = Begin;
+        if (*Begin == '-' || (*Begin >= '0' && *Begin <= '9')) {
+          do {
+            ++Begin;
+          } while(*Begin >= '0' && *Begin <= '9');
+        }
+        const char *UpperEnd = Begin;
+        if (*Begin != ')') {
+          ErrStr = "expected ')' for range";
+          return Token{Token::Error, Begin, 0, APInt()};
+        }
+        Token T;
+        T.K = Token::ConstantRange;
+        T.Pos = NumBegin;
+        T.Len = size_t(Begin - NumBegin);
+        T.Lower = StringRef(NumBegin, LowerEnd - NumBegin);
+        T.Upper = StringRef(UpperBegin, UpperEnd - UpperBegin);
+        ++Begin;
+        return T;
+        //look for .. upper range part and return full token here and likewise returntokens everywhr for CR
+      } else if (*Begin == ')') {
+        ErrStr = "invalid knownbits string";
+        return Token{Token::Error, Begin, 0, APInt()};
+      }
+    } else {
+      if (*Begin == ')') {
+        Token T;
+        T.K = Token::KnownBits;
+        T.Pos = NumBegin;
+        T.Len = size_t(Begin - NumBegin);
+        T.PatternString = StringRef(NumBegin, Begin - NumBegin);
+        ++Begin;
+        return T;
+      } else if (*Begin == '.') {
+        const char *LowerEnd = Begin;
+        ++Begin;
+        if (*Begin != '.') {
+          ErrStr = "expected .. for range";
+          return Token{Token::Error, Begin, 0, APInt()};
+        }
+        ++Begin;
+        const char *UpperBegin = Begin;
+        if (*Begin >= '0' && *Begin <= '9') {//can't be negative number here in upper part because lower is positive
+          while(*Begin >= '0' && *Begin <= '9')
+            ++Begin;
+        } else {
+          ErrStr = "expected upper range";
+          return Token{Token::Error, Begin, 0, APInt()};
+        }
+        const char *UpperEnd = Begin;
+        if (*Begin != ')') {
+          ErrStr = "expected ')' for range";
+          return Token{Token::Error, Begin, 0, APInt()};
+        }
+        Token T;
+        T.K = Token::ConstantRange;
+        T.Pos = NumBegin;
+        T.Len = size_t(Begin - NumBegin);
+        T.Lower = StringRef(NumBegin, LowerEnd - NumBegin);
+        T.Upper = StringRef(UpperBegin, UpperEnd - UpperBegin);
+        ++Begin;
+        return T;
+      } else if (*Begin >= '0' && *Begin <= '9') {
+        while (*Begin >= '0' && *Begin <= '9')
+          ++Begin;
+        const char *LowerEnd = Begin;
+        if (*Begin != '.') {
+          ErrStr = "expected .. for range";
+          return Token{Token::Error, Begin, 0, APInt()};
+        }
+        ++Begin;
+        if (*Begin != '.') {
+          ErrStr = "expected .. for range";
+          return Token{Token::Error, Begin, 0, APInt()};
+        }
+        ++Begin;
+        const char *UpperBegin = Begin;
+        if (*Begin >= '0' && *Begin <= '9') {//here lower is +ve, so upper part has to be +ve
+          while(*Begin >= '0' && *Begin <= '9')
+            ++Begin;
+        }
+        const char *UpperEnd = Begin;
+        if (*Begin != ')') {
+          ErrStr = "expected ')' for range";
+          return Token{Token::Error, Begin, 0, APInt()};
+        }
+        Token T;
+        T.K = Token::ConstantRange;
+        T.Pos = NumBegin;
+        T.Len = size_t(Begin - NumBegin);
+        T.Lower = StringRef(NumBegin, LowerEnd - NumBegin);
+        T.Upper = StringRef(UpperBegin, UpperEnd - UpperBegin);
+        ++Begin;
+        return T;
+      } else {
+          ErrStr = "expected either known-bits or constant range";
+          return Token{Token::Error, Begin, 0, APInt()};
+      }
+    }
   }
 
   ErrStr = std::string("unexpected '") + *Begin + "'";
@@ -868,7 +1029,8 @@ bool Parser::parseLine(std::string &ErrStr) {
 
       if (IK == Inst::Var) {
         llvm::APInt Zero(InstWidth, 0, false), One(InstWidth, 0, false),
-                    ConstOne(InstWidth, 1, false);
+                    ConstOne(InstWidth, 1, false), LowerRange(InstWidth, 0, false),
+                    UpperRange(InstWidth, 0, false);
         if (CurTok.K == Token::KnownBits) {
           if (InstWidth != CurTok.PatternString.length()) {
             ErrStr = makeErrStr(TP, "knownbits pattern must be of same length as var width");
@@ -882,10 +1044,18 @@ bool Parser::parseLine(std::string &ErrStr) {
           }
           if (!consumeToken(ErrStr))
             return false;
+          Inst *I = IC.createVar(InstWidth, InstName, Zero, One);
+          Context.setInst(InstName, I);
+          return true;
+        } else if (CurTok.K == Token::ConstantRange) {
+          LowerRange = APInt(InstWidth, CurTok.Lower, 10);
+          UpperRange = APInt(InstWidth, CurTok.Upper, 10);
+          if (!consumeToken(ErrStr))
+            return false;
+          Inst *I = IC.createVar(InstWidth, InstName, Zero, One, LowerRange, UpperRange);
+          Context.setInst(InstName, I);
+          return true;
         }
-        Inst *I = IC.createVar(InstWidth, InstName, Zero, One);
-        Context.setInst(InstName, I);
-        return true;
       }
 
       if (IK == Inst::Phi) {
