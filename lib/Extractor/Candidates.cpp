@@ -748,13 +748,13 @@ public:
 
   void getAnalysisUsage(AnalysisUsage &Info) const {
     Info.addRequired<LoopInfoWrapperPass>();
-    Info.addRequired<ScalarEvolution>();
+    Info.addRequired<ScalarEvolutionWrapperPass>();
     Info.setPreservesAll();
   }
 
   bool runOnFunction(Function &F) {
     LoopInfo *LI = &getAnalysis<LoopInfoWrapperPass>().getLoopInfo();
-    ScalarEvolution *SE = &getAnalysis<ScalarEvolution>();
+    ScalarEvolution *SE = &getAnalysis<ScalarEvolutionWrapperPass>().getSE();
     ExtractExprCandidates(F, LI, SE, Opts, IC, EBC, Result);
     //ExtractExprCandidates(F, LI, Opts, IC, EBC, Result);
     return false;
