@@ -174,8 +174,8 @@ Inst *ExprBuilder::makeArrayRead(Value *V) {
       const SCEV *S = SE->getSCEV(V);
       if (S) {
         Range = SE->getSignedRange(S);
-        Lower = Range.getLower();
-        Upper = Range.getUpper();
+        Lower = Range.getSignedMin();
+        Upper = Range.getSignedMax();
       }
     }
   }

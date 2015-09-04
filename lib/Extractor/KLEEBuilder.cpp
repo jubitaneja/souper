@@ -155,6 +155,7 @@ ref<Expr> ExprBuilder::makeSizedArrayRead(unsigned Width, StringRef Name,
     OneBitsMap[Origin] = EqExpr::create(VarAndOnes, Ones);
   }
   if (Origin && Origin->K == Inst::Var && (Origin->Upper - Origin->Lower).getBoolValue())
+  //TODO: Expr needs to be refined considering if the lower and upper bounds are inclusive/exclusive
     RangeMap[Origin] = AndExpr::create(UleExpr::create(klee::ConstantExpr::alloc(Origin->Lower), Var),
                                        UleExpr::create(Var, klee::ConstantExpr::alloc(Origin->Upper)));
   return Var;
