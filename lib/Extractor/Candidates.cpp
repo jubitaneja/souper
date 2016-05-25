@@ -92,7 +92,6 @@ struct ExprBuilder {
   ExprBuilderContext &EBC;
   bool VisitBB = true;
   std::map<BasicBlock *, bool> BlocksVisitStamp;
-//  std::map<BasicBlock *, bool>::iterator it = BlocksVisitStamp.begin();
 
   void checkIrreducibleCFG(BasicBlock *BB,
                            BasicBlock *FirstBB,
@@ -495,9 +494,6 @@ Inst *ExprBuilder::get(Value *V) {
 }
 
 void emplace_back_dedup(std::vector<InstMapping> &PCs, Inst *LHS, Inst *RHS) {
-//llvm::outs() << "--- In F: emplace_back_dedup ---\n";
-//llvm::outs() << "LHS = " << Inst::getKindName(LHS->K) << " + RHS = " << Inst::getKindName(RHS->K) << "\n";
-//if (RHS->K == Inst::Const) llvm::outs() << "const val = " << RHS->Val.getBoolValue() << "\n";
   for (auto &i : PCs)
     if (i.LHS == LHS && i.RHS == RHS)
       return;
@@ -560,126 +556,80 @@ void ExprBuilder::addPathConditions(BlockPCs &BPCs,
                                     std::vector<InstMapping> &PCs,
                                     std::unordered_set<Block *> &VisitedBlocks,
                                     BasicBlock *BB) {
-  //llvm::outs() << "*** In F: addPathConditions ***\n";
-  //llvm::outs() << "Not a single pred and I set stamp to TRUE \n";
-  //llvm::outs() << "++++++++++++++++++++++++++++++++++++++++++++++++++++ BB addr = " << BB << "\n";
   if (auto Pred = BB->getSinglePredecessor()) {
-  //llvm::outs() << "++++++++++++++++++++++++++++++++++++++++++++++++++++ BB addr = " << BB << "\n";
-  //llvm::outs() << "++++++++++++++++++++++++++++++++++++++++++++++++++++ Pred addr = " << Pred << "\n";
-  //llvm::outs() << "Signle predecessor and make call again to addPCs func\n";
     addPathConditions(BPCs, PCs, VisitedBlocks, Pred);
-    //llvm::outs() << "the inner call 1 to addPCs end here and move next to find out which kind of inst it found in pred\n";
     if (auto Branch = dyn_cast<BranchInst>(Pred->getTerminator())) {
-    //llvm::outs() << "it found : branch inst\n";
       if (Branch->isConditional()) {
-      //llvm::outs() << "branch is conditional\n";
         if (auto CmpInst = dyn_cast<ICmpInst>(Branch->getCondition())) {
-        //llvm::outs() << "Pred BB terminator is CMP inst\n";
-        switch(CmpInst->getPredicate()) {
-          case ICmpInst::ICMP_EQ: {
-            //llvm::outs() << "****************************************************** EQ\n";
-            // res = isKnownNonEqual(CmpInst->getOperand(0), CmpInst->getOperand(1), ....);
-            // take true or false depending on 'res' value and operation (EQ or NE))
-            // mark the basic blocks as well which u dont want to visit at all or u want to vsit again anyway. Mark them specifically..
-            if (BlocksVisitStamp[Pred]) {
-            //llvm::outs() << "Pred is marked to be visited again !\n";
-              bool Result = false;
-              Result = isKnownNonEqual(CmpInst->getOperand(0), CmpInst->getOperand(1), DL);
-              if (!Result) {
-                  //llvm::outs() << "True branch ====>>> Mark Pred = false, cur = true\n";
-                // take the true path
-                // mark the Root BB, i.e. Pred as DontVisitAgain and Cur_BB as VisitAgain
-                std::map<BasicBlock *, bool>::iterator it_pred = BlocksVisitStamp.find(Pred);
-                std::map<BasicBlock *, bool>::iterator it_cur = BlocksVisitStamp.find(BB);
-                it_pred->second = false;
-                it_cur->second = true;
-                //BlocksVisitStamp.insert(std::pair<BasicBlock *, bool>(Pred, false));
-                //BlocksVisitStamp.insert(std::pair<BasicBlock *, bool>(BB, true));
-                emplace_back_dedup(
-                    PCs, get(Branch->getCondition()),
-                    IC.getConst(APInt(1, 1)));
+          switch(CmpInst->getPredicate()) {
+            case ICmpInst::ICMP_EQ: {
+              if (BlocksVisitStamp[Pred]) {
+                bool Result = false;
+                Result = isKnownNonEqual(CmpInst->getOperand(0), CmpInst->getOperand(1), DL);
+                if (!Result) {
+                  std::map<BasicBlock *, bool>::iterator it_pred = BlocksVisitStamp.find(Pred);
+                  std::map<BasicBlock *, bool>::iterator it_cur = BlocksVisitStamp.find(BB);
+                  it_pred->second = false;
+                  it_cur->second = true;
+                  emplace_back_dedup(
+                      PCs, get(Branch->getCondition()),
+                      IC.getConst(APInt(1, 1)));
+                } else {
+                  std::map<BasicBlock *, bool>::iterator it_pred = BlocksVisitStamp.find(Pred);
+                  std::map<BasicBlock *, bool>::iterator it_cur = BlocksVisitStamp.find(BB);
+                  it_pred->second = true;
+                  it_cur->second = false;
+                  emplace_back_dedup(
+                      PCs, get(Branch->getCondition()),
+                      IC.getConst(APInt(1, 0)));
+                }
               } else {
-                std::map<BasicBlock *, bool>::iterator it_pred = BlocksVisitStamp.find(Pred);
                 std::map<BasicBlock *, bool>::iterator it_cur = BlocksVisitStamp.find(BB);
-                it_pred->second = true;
                 it_cur->second = false;
-                //llvm::outs() << "False branch =======>>>>> Mark Pred = true, Cur = false\n";
-                //BlocksVisitStamp.insert(std::pair<BasicBlock *, bool>(Pred, true));
-                //BlocksVisitStamp.insert(std::pair<BasicBlock *, bool>(BB, false));
-                emplace_back_dedup(
-                    PCs, get(Branch->getCondition()),
-                    IC.getConst(APInt(1, 0)));
-                // take the false path
-                // Mark the Pred as VisitAgain, Mark Cur_BB as Don't Visit again
               }
-            } else {
-              //llvm::outs() << "Pred block is stamped as: Dont Visit again\n";
-              std::map<BasicBlock *, bool>::iterator it_cur = BlocksVisitStamp.find(BB);
-              it_cur->second = false;
-              //BlocksVisitStamp.insert(std::pair<BasicBlock *, bool>(BB, false));
+              break;
             }
-            break;
-          }
-          case ICmpInst::ICMP_NE: {
-            //llvm::outs() << "****************************************************** NE\n";
-            if (BlocksVisitStamp[Pred]) {
-            //llvm::outs() << "Pred is marked to be visited again !\n";
-              bool Result = false;
-              Result = isKnownNonEqual(CmpInst->getOperand(0), CmpInst->getOperand(1), DL);
-              if (Result) {
-                  //llvm::outs() << "True branch ====>>> Mark Pred = false, cur = true\n";
-                // take the true path
-                // mark the Root BB, i.e. Pred as DontVisitAgain and Cur_BB as VisitAgain
-                std::map<BasicBlock *, bool>::iterator it_pred = BlocksVisitStamp.find(Pred);
-                std::map<BasicBlock *, bool>::iterator it_cur = BlocksVisitStamp.find(BB);
-                it_pred->second = false;
-                it_cur->second = true;
-                //BlocksVisitStamp.insert(std::pair<BasicBlock *, bool>(Pred, false));
-                //BlocksVisitStamp.insert(std::pair<BasicBlock *, bool>(BB, true));
-                emplace_back_dedup(
-                    PCs, get(Branch->getCondition()),
-                    IC.getConst(APInt(1, 1)));
+            case ICmpInst::ICMP_NE: {
+              if (BlocksVisitStamp[Pred]) {
+                bool Result = false;
+                Result = isKnownNonEqual(CmpInst->getOperand(0), CmpInst->getOperand(1), DL);
+                if (Result) {
+                  std::map<BasicBlock *, bool>::iterator it_pred = BlocksVisitStamp.find(Pred);
+                  std::map<BasicBlock *, bool>::iterator it_cur = BlocksVisitStamp.find(BB);
+                  it_pred->second = false;
+                  it_cur->second = true;
+                  emplace_back_dedup(
+                      PCs, get(Branch->getCondition()),
+                      IC.getConst(APInt(1, 1)));
+                } else {
+                  std::map<BasicBlock *, bool>::iterator it_pred = BlocksVisitStamp.find(Pred);
+                  std::map<BasicBlock *, bool>::iterator it_cur = BlocksVisitStamp.find(BB);
+                  it_pred->second = true;
+                  it_cur->second = false;
+                  emplace_back_dedup(
+                      PCs, get(Branch->getCondition()),
+                      IC.getConst(APInt(1, 0)));
+                }
               } else {
-                //llvm::outs() << "False branch =======>>>>> Mark Pred = true, Cur = false\n";
-                std::map<BasicBlock *, bool>::iterator it_pred = BlocksVisitStamp.find(Pred);
                 std::map<BasicBlock *, bool>::iterator it_cur = BlocksVisitStamp.find(BB);
-                it_pred->second = true;
                 it_cur->second = false;
-                //BlocksVisitStamp.insert(std::pair<BasicBlock *, bool>(Pred, true));
-                //BlocksVisitStamp.insert(std::pair<BasicBlock *, bool>(BB, false));
-                emplace_back_dedup(
-                    PCs, get(Branch->getCondition()),
-                    IC.getConst(APInt(1, 0)));
-                // take the false path
-                // Mark the Pred as VisitAgain, Mark Cur_BB as Don't Visit again
               }
-            } else {
-              //llvm::outs() << "Pred block is stamped as: Dont Visit again\n";
-              std::map<BasicBlock *, bool>::iterator it_cur = BlocksVisitStamp.find(BB);
-              it_cur->second = false;
-              //BlocksVisitStamp.insert(std::pair<BasicBlock *, bool>(BB, false));
+              break;
             }
-            break;
+           default: {
+              emplace_back_dedup(
+                  PCs, get(Branch->getCondition()),
+                  IC.getConst(APInt(1, Branch->getSuccessor(0) == BB)));
+           }
           }
-         default: {
-         //all others CMP types like LT, GT, ULT, ....
-            //llvm::outs() << "****************************************************** DEFAULT \n";
-            emplace_back_dedup(
-                PCs, get(Branch->getCondition()),
-                IC.getConst(APInt(1, Branch->getSuccessor(0) == BB)));
-         }
-        }
         }
       }
     } else if (auto Switch = dyn_cast<SwitchInst>(Pred->getTerminator())) {
-    //llvm::outs() << "it found: switch inst\n";
       Inst *Cond = get(Switch->getCondition());
       ConstantInt *Case = Switch->findCaseDest(BB);
       if (Case) {
         emplace_back_dedup(PCs, Cond, get(Case));
       } else {
-      //llvm::outs() << "it found: default case for pred\n";
-        // default
         Inst *DI = IC.getConst(APInt(1, true));
         for (auto I = Switch->case_begin(), E = Switch->case_end(); I != E;
              ++I) {
@@ -689,7 +639,6 @@ void ExprBuilder::addPathConditions(BlockPCs &BPCs,
       }
     }
   } else if (ExploitBPCs) {
-  //llvm::outs() << "BLOCKPC - shouldn't occur \n";
     // BB is the entry of the function.
     if (pred_begin(BB) == pred_end(BB))
       return;
@@ -715,17 +664,12 @@ void ExprBuilder::addPathConditions(BlockPCs &BPCs,
 
     VisitedBlocks.insert(BI.B);
     for (unsigned i = 0; i < BI.Preds.size(); ++i) {
-    //llvm::outs() << "iteration of preds = " << i << "\n";
       std::vector<InstMapping> PCs;
       addPathConditions(BPCs, PCs, VisitedBlocks, BI.Preds[i]);
       for (auto PC : PCs)
         BPCs.emplace_back(BlockPCMapping(BI.B, i, PC));
     }
   }
-  //llvm::outs() << "########################### Map contains ###################\n";
-  //std::map<BasicBlock *, bool>::iterator it = BlocksVisitStamp.begin();
-  //for (it=BlocksVisitStamp.begin(); it!=BlocksVisitStamp.end(); ++it)
-     //llvm::outs() << it->first << " => " << it->second << '\n';
 }
 
 namespace {
@@ -812,34 +756,19 @@ void ExtractExprCandidates(Function &F, const LoopInfo *LI,
                            const ExprBuilderOptions &Opts, InstContext &IC,
                            ExprBuilderContext &EBC,
                            FunctionCandidateSet &Result) {
-  //llvm::outs() << "In F : ExtractExprCandidates\n";
   ExprBuilder EB(Opts, F.getParent(), LI, IC, EBC);
 
   for (auto &BB : F) {
-    //no matter what, just initialize the stamps to true by default
     EB.BlocksVisitStamp.insert(std::pair<BasicBlock *, bool>(&BB, true));
-  //llvm::outs() << "for each BB in F -- check how many times it comes here ! \n";
     std::unique_ptr<BlockCandidateSet> BCS(new BlockCandidateSet);
     for (auto &I : BB) {
-    //llvm::outs() << "for each inst in BB \n";
       if (I.getType()->isIntegerTy())
         BCS->Replacements.emplace_back(&I, InstMapping(EB.get(&I), 0));
     }
+
     if (!BCS->Replacements.empty()) {
       std::unordered_set<Block *> VisitedBlocks;
-      //llvm::outs() << "Call f: addPathConditions from F: ExtractExprCandidates\n";
       EB.addPathConditions(BCS->BPCs, BCS->PCs, VisitedBlocks, &BB);
-
-#if 0
-      llvm::outs() << "########################### Map contains ###################\n";
-      BasicBlock &EntryBB = F.getEntryBlock();
-      llvm::outs() << "B1 addr = " << &EntryBB << "\n";
-      std::map<BasicBlock *, bool>::iterator it = EB.BlocksVisitStamp.begin();
-      for (it=EB.BlocksVisitStamp.begin(); it!=EB.BlocksVisitStamp.end(); ++it) {
-        if (!(it->first != &EntryBB && !it->second))
-          llvm::outs() << it->first << " => " << it->second << '\n';
-      }
-      #endif
       InstClasses Vars, BPCVars;
       auto PCSets = AddPCSets(BCS->PCs, Vars);
       auto BPCSets = AddBlockPCSets(BCS->BPCs, BPCVars);
@@ -849,15 +778,6 @@ void ExtractExprCandidates(Function &F, const LoopInfo *LI,
           GetRelevantPCs(BCS->BPCs, BCS->PCs, BPCSets, PCSets, Vars, R.Mapping);
       }
 
-#if 0
-      BasicBlock &EntryBB = F.getEntryBlock();
-      std::map<BasicBlock *, bool>::iterator it = EB.BlocksVisitStamp.begin();
-      for (it=EB.BlocksVisitStamp.begin(); it!=EB.BlocksVisitStamp.end(); ++it) {
-        if (!(it->first != &EntryBB && !it->second))
-          Result.Blocks.emplace_back(std::move(BCS));
-          //llvm::outs() << it->first << " => " << it->second << '\n';
-      }
-      #endif
       if (EB.BlocksVisitStamp[&BB])
         Result.Blocks.emplace_back(std::move(BCS));
     }
@@ -884,7 +804,6 @@ public:
 
   bool runOnFunction(Function &F) {
     LoopInfo *LI = &getAnalysis<LoopInfoWrapperPass>().getLoopInfo();
-    //llvm::outs() << "Call f: ExtractExprCandidates from : Pass\n";
     ExtractExprCandidates(F, LI, Opts, IC, EBC, Result);
     return false;
   }
@@ -898,7 +817,6 @@ FunctionCandidateSet souper::ExtractCandidatesFromPass(
     Function *F, const LoopInfo *LI, InstContext &IC, ExprBuilderContext &EBC,
     const ExprBuilderOptions &Opts) {
   FunctionCandidateSet Result;
-  //llvm::outs() << "Call f: ExtractExprCandidates from F : ExtractCandidatesFromPass\n";
   ExtractExprCandidates(*F, LI, Opts, IC, EBC, Result);
   return Result;
 }
