@@ -34,9 +34,12 @@ void souper::AddToCandidateMap(CandidateMap &M,
 void souper::AddModuleToCandidateMap(InstContext &IC, ExprBuilderContext &EBC,
                                      CandidateMap &CandMap, llvm::Module *M) {
   for (auto &F : *M) {
+  llvm::outs() << "++++ For each F in Mod +++\n";
     FunctionCandidateSet CS = ExtractCandidates(&F, IC, EBC);
     for (auto &B : CS.Blocks) {
+    llvm::outs() << "\t ++++++ For each function's BB  = " << &B << "\n";
       for (auto &R : B->Replacements) {
+      llvm::outs() << "\t\t++++++ replacements in BB \n";
         AddToCandidateMap(CandMap, R);
       }
     }
@@ -176,7 +179,12 @@ bool CheckCandidateMap(llvm::Module &Mod, CandidateMap &M, Solver *S,
 
   for (const auto &F : Mod) {
     for (const auto &BB : F) {
+    //we need to skip BB which are stamped out
+    //if (!BlocksVisitStamp[&BB]) llvm::outs() << "Not stamped BB is " << &BB << "\n";
+//    llvm::outs() << "Size of stamp map = " << BlocksVisitStamp.size() << "\n";
+    llvm::outs() << "######################## Check BB = " << &BB << "\n";
       for (const auto &Inst : BB) {
+      llvm::outs() << "Inst == \t"; Inst.dump(); llvm::outs() << "\n";
         llvm::MDNode *ExpectedMD = Inst.getMetadata(ExpectedID);
         if (ExpectedMD) {
           llvm::errs() << "instruction:\n";

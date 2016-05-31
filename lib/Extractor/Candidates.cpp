@@ -91,7 +91,6 @@ struct ExprBuilder {
   InstContext &IC;
   ExprBuilderContext &EBC;
   bool VisitBB = true;
-  std::map<BasicBlock *, bool> BlocksVisitStamp;
 
   void checkIrreducibleCFG(BasicBlock *BB,
                            BasicBlock *FirstBB,
@@ -567,16 +566,16 @@ void ExprBuilder::addPathConditions(BlockPCs &BPCs,
                 bool Result = false;
                 Result = isKnownNonEqual(CmpInst->getOperand(0), CmpInst->getOperand(1), DL);
                 if (!Result) {
-                  std::map<BasicBlock *, bool>::iterator it_pred = BlocksVisitStamp.find(Pred);
-                  std::map<BasicBlock *, bool>::iterator it_cur = BlocksVisitStamp.find(BB);
+                  std::map<llvm::BasicBlock *, bool>::iterator it_pred = BlocksVisitStamp.find(Pred);
+                  std::map<llvm::BasicBlock *, bool>::iterator it_cur = BlocksVisitStamp.find(BB);
                   it_pred->second = false;
                   it_cur->second = true;
                   emplace_back_dedup(
                       PCs, get(Branch->getCondition()),
                       IC.getConst(APInt(1, 1)));
                 } else {
-                  std::map<BasicBlock *, bool>::iterator it_pred = BlocksVisitStamp.find(Pred);
-                  std::map<BasicBlock *, bool>::iterator it_cur = BlocksVisitStamp.find(BB);
+                  std::map<llvm::BasicBlock *, bool>::iterator it_pred = BlocksVisitStamp.find(Pred);
+                  std::map<llvm::BasicBlock *, bool>::iterator it_cur = BlocksVisitStamp.find(BB);
                   it_pred->second = true;
                   it_cur->second = false;
                   emplace_back_dedup(
@@ -584,7 +583,7 @@ void ExprBuilder::addPathConditions(BlockPCs &BPCs,
                       IC.getConst(APInt(1, 0)));
                 }
               } else {
-                std::map<BasicBlock *, bool>::iterator it_cur = BlocksVisitStamp.find(BB);
+                std::map<llvm::BasicBlock *, bool>::iterator it_cur = BlocksVisitStamp.find(BB);
                 it_cur->second = false;
               }
               break;
@@ -594,16 +593,16 @@ void ExprBuilder::addPathConditions(BlockPCs &BPCs,
                 bool Result = false;
                 Result = isKnownNonEqual(CmpInst->getOperand(0), CmpInst->getOperand(1), DL);
                 if (Result) {
-                  std::map<BasicBlock *, bool>::iterator it_pred = BlocksVisitStamp.find(Pred);
-                  std::map<BasicBlock *, bool>::iterator it_cur = BlocksVisitStamp.find(BB);
+                  std::map<llvm::BasicBlock *, bool>::iterator it_pred = BlocksVisitStamp.find(Pred);
+                  std::map<llvm::BasicBlock *, bool>::iterator it_cur = BlocksVisitStamp.find(BB);
                   it_pred->second = false;
                   it_cur->second = true;
                   emplace_back_dedup(
                       PCs, get(Branch->getCondition()),
                       IC.getConst(APInt(1, 1)));
                 } else {
-                  std::map<BasicBlock *, bool>::iterator it_pred = BlocksVisitStamp.find(Pred);
-                  std::map<BasicBlock *, bool>::iterator it_cur = BlocksVisitStamp.find(BB);
+                  std::map<llvm::BasicBlock *, bool>::iterator it_pred = BlocksVisitStamp.find(Pred);
+                  std::map<llvm::BasicBlock *, bool>::iterator it_cur = BlocksVisitStamp.find(BB);
                   it_pred->second = true;
                   it_cur->second = false;
                   emplace_back_dedup(
@@ -611,7 +610,7 @@ void ExprBuilder::addPathConditions(BlockPCs &BPCs,
                       IC.getConst(APInt(1, 0)));
                 }
               } else {
-                std::map<BasicBlock *, bool>::iterator it_cur = BlocksVisitStamp.find(BB);
+                std::map<llvm::BasicBlock *, bool>::iterator it_cur = BlocksVisitStamp.find(BB);
                 it_cur->second = false;
               }
               break;
@@ -759,7 +758,9 @@ void ExtractExprCandidates(Function &F, const LoopInfo *LI,
   ExprBuilder EB(Opts, F.getParent(), LI, IC, EBC);
 
   for (auto &BB : F) {
-    EB.BlocksVisitStamp.insert(std::pair<BasicBlock *, bool>(&BB, true));
+    llvm::outs() << "******* For each BB = " << &BB << " ****\n";
+    std::map<llvm::BasicBlock *, bool> BlocksVisitStamp;
+    BlocksVisitStamp.insert(std::pair<llvm::BasicBlock *, bool>(&BB, true));
     std::unique_ptr<BlockCandidateSet> BCS(new BlockCandidateSet);
     for (auto &I : BB) {
       if (I.getType()->isIntegerTy())
@@ -778,10 +779,14 @@ void ExtractExprCandidates(Function &F, const LoopInfo *LI,
           GetRelevantPCs(BCS->BPCs, BCS->PCs, BPCSets, PCSets, Vars, R.Mapping);
       }
 
-      if (EB.BlocksVisitStamp[&BB])
+llvm::outs() << "\t***Check Stanp val = \n";
+      if (BlocksVisitStamp[&BB]) {
         Result.Blocks.emplace_back(std::move(BCS));
+        llvm::outs() << " " << &BB << "\n";
+      }
     }
   }
+  //save the BlocksVisitStamp map so that we can retrieve info in CandMapUtils
 }
 
 class ExtractExprCandidatesPass : public FunctionPass {
