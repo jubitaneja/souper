@@ -26,6 +26,8 @@
 
 using namespace llvm;
 
+std::map<llvm::BasicBlock *, bool> copy;
+
 void souper::AddToCandidateMap(CandidateMap &M,
                                const CandidateReplacement &CR) {
   M.emplace_back(CR);
@@ -34,16 +36,26 @@ void souper::AddToCandidateMap(CandidateMap &M,
 void souper::AddModuleToCandidateMap(InstContext &IC, ExprBuilderContext &EBC,
                                      CandidateMap &CandMap, llvm::Module *M) {
   for (auto &F : *M) {
-  llvm::outs() << "++++ For each F in Mod +++\n";
     FunctionCandidateSet CS = ExtractCandidates(&F, IC, EBC);
+llvm::outs() << "******** For each F : Stamp size = " << EBC.BlocksVisitStamp.size() << "\n";
+for (std::map<llvm::BasicBlock *, bool>::iterator it = EBC.BlocksVisitStamp.begin(); it != EBC.BlocksVisitStamp.end(); ++it) {
+	llvm::outs() << &(it->first) << " ==> " << it->second << "\n";
+}
     for (auto &B : CS.Blocks) {
-    llvm::outs() << "\t ++++++ For each function's BB  = " << &B << "\n";
+//llvm::outs() << "\t *** For each BB in F \n";
       for (auto &R : B->Replacements) {
-      llvm::outs() << "\t\t++++++ replacements in BB \n";
         AddToCandidateMap(CandMap, R);
       }
     }
   }
+for (std::map<llvm::BasicBlock *, bool>::iterator pt = EBC.BlocksVisitStamp.begin(); pt != EBC.BlocksVisitStamp.end(); ++pt) {
+	if (EBC.BlocksVisitStamp[pt->first])
+	llvm::outs() << &(pt->first) << " <<******>> " << pt->second << "\n";
+	else
+		llvm::outs() << "Skip \n";
+}
+copy = EBC.BlocksVisitStamp;
+//llvm::outs() << "size of copy = " << copy.size() << "\n";
 }
 
 namespace souper {
@@ -178,13 +190,12 @@ bool CheckCandidateMap(llvm::Module &Mod, CandidateMap &M, Solver *S,
   }
 
   for (const auto &F : Mod) {
-    for (const auto &BB : F) {
-    //we need to skip BB which are stamped out
-    //if (!BlocksVisitStamp[&BB]) llvm::outs() << "Not stamped BB is " << &BB << "\n";
-//    llvm::outs() << "Size of stamp map = " << BlocksVisitStamp.size() << "\n";
-    llvm::outs() << "######################## Check BB = " << &BB << "\n";
-      for (const auto &Inst : BB) {
-      llvm::outs() << "Inst == \t"; Inst.dump(); llvm::outs() << "\n";
+//    for (const auto &BB : F) {
+    for (std::map<llvm::BasicBlock *, bool>::iterator pt = copy.begin(); pt != copy.end(); ++pt) {
+      if (copy[pt->first]) {
+      //for (const auto &Inst : BB) {
+llvm::outs() << "## Stamp true for BB = " << &(pt->first) << "\n";
+      for (const auto &Inst : *(pt->first)) {
         llvm::MDNode *ExpectedMD = Inst.getMetadata(ExpectedID);
         if (ExpectedMD) {
           llvm::errs() << "instruction:\n";
@@ -194,6 +205,7 @@ bool CheckCandidateMap(llvm::Module &Mod, CandidateMap &M, Solver *S,
           continue;
         }
       }
+}
     }
   }
 

@@ -556,26 +556,30 @@ void ExprBuilder::addPathConditions(BlockPCs &BPCs,
                                     std::unordered_set<Block *> &VisitedBlocks,
                                     BasicBlock *BB) {
   if (auto Pred = BB->getSinglePredecessor()) {
+llvm::outs() << "BB has single pred \n";
     addPathConditions(BPCs, PCs, VisitedBlocks, Pred);
     if (auto Branch = dyn_cast<BranchInst>(Pred->getTerminator())) {
+llvm::outs() << "BB's Pred has branch cond\n";
       if (Branch->isConditional()) {
         if (auto CmpInst = dyn_cast<ICmpInst>(Branch->getCondition())) {
+llvm::outs() << "br has icmp inst\n";
           switch(CmpInst->getPredicate()) {
             case ICmpInst::ICMP_EQ: {
-              if (BlocksVisitStamp[Pred]) {
+llvm::outs() << "EQ operator\n";
+              if (EBC.BlocksVisitStamp[Pred]) {
                 bool Result = false;
                 Result = isKnownNonEqual(CmpInst->getOperand(0), CmpInst->getOperand(1), DL);
                 if (!Result) {
-                  std::map<llvm::BasicBlock *, bool>::iterator it_pred = BlocksVisitStamp.find(Pred);
-                  std::map<llvm::BasicBlock *, bool>::iterator it_cur = BlocksVisitStamp.find(BB);
+                  std::map<llvm::BasicBlock *, bool>::iterator it_pred = EBC.BlocksVisitStamp.find(Pred);
+                  std::map<llvm::BasicBlock *, bool>::iterator it_cur = EBC.BlocksVisitStamp.find(BB);
                   it_pred->second = false;
                   it_cur->second = true;
                   emplace_back_dedup(
                       PCs, get(Branch->getCondition()),
                       IC.getConst(APInt(1, 1)));
                 } else {
-                  std::map<llvm::BasicBlock *, bool>::iterator it_pred = BlocksVisitStamp.find(Pred);
-                  std::map<llvm::BasicBlock *, bool>::iterator it_cur = BlocksVisitStamp.find(BB);
+                  std::map<llvm::BasicBlock *, bool>::iterator it_pred = EBC.BlocksVisitStamp.find(Pred);
+                  std::map<llvm::BasicBlock *, bool>::iterator it_cur = EBC.BlocksVisitStamp.find(BB);
                   it_pred->second = true;
                   it_cur->second = false;
                   emplace_back_dedup(
@@ -583,26 +587,27 @@ void ExprBuilder::addPathConditions(BlockPCs &BPCs,
                       IC.getConst(APInt(1, 0)));
                 }
               } else {
-                std::map<llvm::BasicBlock *, bool>::iterator it_cur = BlocksVisitStamp.find(BB);
+                std::map<llvm::BasicBlock *, bool>::iterator it_cur = EBC.BlocksVisitStamp.find(BB);
                 it_cur->second = false;
               }
               break;
             }
             case ICmpInst::ICMP_NE: {
-              if (BlocksVisitStamp[Pred]) {
+llvm::outs() << "NE operator\n";
+              if (EBC.BlocksVisitStamp[Pred]) {
                 bool Result = false;
                 Result = isKnownNonEqual(CmpInst->getOperand(0), CmpInst->getOperand(1), DL);
                 if (Result) {
-                  std::map<llvm::BasicBlock *, bool>::iterator it_pred = BlocksVisitStamp.find(Pred);
-                  std::map<llvm::BasicBlock *, bool>::iterator it_cur = BlocksVisitStamp.find(BB);
+                  std::map<llvm::BasicBlock *, bool>::iterator it_pred = EBC.BlocksVisitStamp.find(Pred);
+                  std::map<llvm::BasicBlock *, bool>::iterator it_cur = EBC.BlocksVisitStamp.find(BB);
                   it_pred->second = false;
                   it_cur->second = true;
                   emplace_back_dedup(
                       PCs, get(Branch->getCondition()),
                       IC.getConst(APInt(1, 1)));
                 } else {
-                  std::map<llvm::BasicBlock *, bool>::iterator it_pred = BlocksVisitStamp.find(Pred);
-                  std::map<llvm::BasicBlock *, bool>::iterator it_cur = BlocksVisitStamp.find(BB);
+                  std::map<llvm::BasicBlock *, bool>::iterator it_pred = EBC.BlocksVisitStamp.find(Pred);
+                  std::map<llvm::BasicBlock *, bool>::iterator it_cur = EBC.BlocksVisitStamp.find(BB);
                   it_pred->second = true;
                   it_cur->second = false;
                   emplace_back_dedup(
@@ -610,12 +615,13 @@ void ExprBuilder::addPathConditions(BlockPCs &BPCs,
                       IC.getConst(APInt(1, 0)));
                 }
               } else {
-                std::map<llvm::BasicBlock *, bool>::iterator it_cur = BlocksVisitStamp.find(BB);
+                std::map<llvm::BasicBlock *, bool>::iterator it_cur = EBC.BlocksVisitStamp.find(BB);
                 it_cur->second = false;
               }
               break;
             }
            default: {
+llvm::outs() << "default \n";
               emplace_back_dedup(
                   PCs, get(Branch->getCondition()),
                   IC.getConst(APInt(1, Branch->getSuccessor(0) == BB)));
@@ -759,8 +765,8 @@ void ExtractExprCandidates(Function &F, const LoopInfo *LI,
 
   for (auto &BB : F) {
     llvm::outs() << "******* For each BB = " << &BB << " ****\n";
-    std::map<llvm::BasicBlock *, bool> BlocksVisitStamp;
-    BlocksVisitStamp.insert(std::pair<llvm::BasicBlock *, bool>(&BB, true));
+    //std::map<llvm::BasicBlock *, bool> BlocksVisitStamp;
+    EBC.BlocksVisitStamp.insert(std::pair<llvm::BasicBlock *, bool>(&BB, true));
     std::unique_ptr<BlockCandidateSet> BCS(new BlockCandidateSet);
     for (auto &I : BB) {
       if (I.getType()->isIntegerTy())
@@ -779,10 +785,10 @@ void ExtractExprCandidates(Function &F, const LoopInfo *LI,
           GetRelevantPCs(BCS->BPCs, BCS->PCs, BPCSets, PCSets, Vars, R.Mapping);
       }
 
-llvm::outs() << "\t***Check Stanp val = \n";
-      if (BlocksVisitStamp[&BB]) {
+//llvm::outs() << "\t***Check Stanp val = \n";
+      if (EBC.BlocksVisitStamp[&BB]) {
         Result.Blocks.emplace_back(std::move(BCS));
-        llvm::outs() << " " << &BB << "\n";
+        //llvm::outs() << " " << &BB << "\n";
       }
     }
   }
