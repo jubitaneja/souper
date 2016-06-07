@@ -561,15 +561,18 @@ llvm::outs() << "BB has single pred \n";
     if (auto Branch = dyn_cast<BranchInst>(Pred->getTerminator())) {
 llvm::outs() << "BB's Pred has branch cond\n";
       if (Branch->isConditional()) {
+llvm::outs() << "br is conditional \n";
         if (auto CmpInst = dyn_cast<ICmpInst>(Branch->getCondition())) {
 llvm::outs() << "br has icmp inst\n";
           switch(CmpInst->getPredicate()) {
             case ICmpInst::ICMP_EQ: {
-llvm::outs() << "EQ operator\n";
+llvm::outs() << "EQ operator in icmp \n";
               if (EBC.BlocksVisitStamp[Pred]) {
+llvm::outs() << "CurBB->Pred is stamped true\n";
                 bool Result = false;
                 Result = isKnownNonEqual(CmpInst->getOperand(0), CmpInst->getOperand(1), DL);
                 if (!Result) {
+llvm::outs() << "cmp result is : false \n";
                   std::map<llvm::BasicBlock *, bool>::iterator it_pred = EBC.BlocksVisitStamp.find(Pred);
                   std::map<llvm::BasicBlock *, bool>::iterator it_cur = EBC.BlocksVisitStamp.find(BB);
                   it_pred->second = false;
@@ -578,6 +581,7 @@ llvm::outs() << "EQ operator\n";
                       PCs, get(Branch->getCondition()),
                       IC.getConst(APInt(1, 1)));
                 } else {
+llvm::outs() << "cmp result is : true\n";
                   std::map<llvm::BasicBlock *, bool>::iterator it_pred = EBC.BlocksVisitStamp.find(Pred);
                   std::map<llvm::BasicBlock *, bool>::iterator it_cur = EBC.BlocksVisitStamp.find(BB);
                   it_pred->second = true;
@@ -587,13 +591,14 @@ llvm::outs() << "EQ operator\n";
                       IC.getConst(APInt(1, 0)));
                 }
               } else {
+llvm::outs() << "CurBB->Pred is stamped false \n";
                 std::map<llvm::BasicBlock *, bool>::iterator it_cur = EBC.BlocksVisitStamp.find(BB);
                 it_cur->second = false;
               }
               break;
             }
             case ICmpInst::ICMP_NE: {
-llvm::outs() << "NE operator\n";
+//llvm::outs() << "NE operator\n";
               if (EBC.BlocksVisitStamp[Pred]) {
                 bool Result = false;
                 Result = isKnownNonEqual(CmpInst->getOperand(0), CmpInst->getOperand(1), DL);
@@ -627,6 +632,11 @@ llvm::outs() << "default \n";
                   IC.getConst(APInt(1, Branch->getSuccessor(0) == BB)));
            }
           }
+        } else {
+llvm::outs() << "Br is conditional with something not ICMP \n";
+          emplace_back_dedup(
+              PCs, get(Branch->getCondition()),
+              IC.getConst(APInt(1, Branch->getSuccessor(0) == BB)));
         }
       }
     } else if (auto Switch = dyn_cast<SwitchInst>(Pred->getTerminator())) {
@@ -644,6 +654,7 @@ llvm::outs() << "default \n";
       }
     }
   } else if (ExploitBPCs) {
+llvm::outs() << "Block PC \n";
     // BB is the entry of the function.
     if (pred_begin(BB) == pred_end(BB))
       return;
@@ -669,6 +680,7 @@ llvm::outs() << "default \n";
 
     VisitedBlocks.insert(BI.B);
     for (unsigned i = 0; i < BI.Preds.size(); ++i) {
+llvm::outs() << "BLOCKPCs will call addPCs now for --- BB's Pred No. " << i << "\n";
       std::vector<InstMapping> PCs;
       addPathConditions(BPCs, PCs, VisitedBlocks, BI.Preds[i]);
       for (auto PC : PCs)
@@ -765,15 +777,19 @@ void ExtractExprCandidates(Function &F, const LoopInfo *LI,
 
   for (auto &BB : F) {
     llvm::outs() << "******* For each BB = " << &BB << " ****\n";
-    //std::map<llvm::BasicBlock *, bool> BlocksVisitStamp;
     EBC.BlocksVisitStamp.insert(std::pair<llvm::BasicBlock *, bool>(&BB, true));
     std::unique_ptr<BlockCandidateSet> BCS(new BlockCandidateSet);
     for (auto &I : BB) {
+llvm::outs() << "\t *** For each Inst in BB \n";
       if (I.getType()->isIntegerTy())
+{
+llvm::outs() << "\t\t Add replacement for this inst\n";
         BCS->Replacements.emplace_back(&I, InstMapping(EB.get(&I), 0));
+}
     }
 
     if (!BCS->Replacements.empty()) {
+llvm::outs() << "found replacements, call addPC\n";
       std::unordered_set<Block *> VisitedBlocks;
       EB.addPathConditions(BCS->BPCs, BCS->PCs, VisitedBlocks, &BB);
       InstClasses Vars, BPCVars;
