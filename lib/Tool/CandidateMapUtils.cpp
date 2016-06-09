@@ -26,7 +26,7 @@
 
 using namespace llvm;
 
-std::map<llvm::BasicBlock *, bool> copy;
+std::map<llvm::BasicBlock *, souper::StampType> copy;
 
 void souper::AddToCandidateMap(CandidateMap &M,
                                const CandidateReplacement &CR) {
@@ -42,21 +42,20 @@ void souper::AddModuleToCandidateMap(InstContext &IC, ExprBuilderContext &EBC,
 //	llvm::outs() << &(it->first) << " ==> " << it->second << "\n";
 //}
     for (auto &B : CS.Blocks) {
-llvm::outs() << "\t ####### For each BB in F \n";
+//llvm::outs() << "\t ####### For each BB in F \n";
       for (auto &R : B->Replacements) {
-llvm::outs() << "\t\t ### For each repl in BB \n";
+//llvm::outs() << "\t\t ### For each repl in BB \n";
         AddToCandidateMap(CandMap, R);
       }
     }
   }
-for (std::map<llvm::BasicBlock *, bool>::iterator pt = EBC.BlocksVisitStamp.begin(); pt != EBC.BlocksVisitStamp.end(); ++pt) {
-	if (EBC.BlocksVisitStamp[pt->first])
-	llvm::outs() << &(pt->first) << " <<<<<<<<<<<<<<<<<<< ******>> " << pt->second << "\n";
-	else
-		llvm::outs() << "<<<<<<<<<<<<<<<<<    Skip \n";
-}
-copy = EBC.BlocksVisitStamp;
-//llvm::outs() << "size of copy = " << copy.size() << "\n";
+//for (std::map<llvm::BasicBlock *, StampType>::iterator pt = EBC.BlocksVisitStamp.begin(); pt != EBC.BlocksVisitStamp.end(); ++pt) {
+//	if (EBC.BlocksVisitStamp[pt->first])
+//	llvm::outs() << &(pt->first) << " <<<<<<<<<<<<<<<<<<< ******>> " << pt->second << "\n";
+//	else
+//		llvm::outs() << "<<<<<<<<<<<<<<<<<    Skip \n";
+//}
+  copy = EBC.BlocksVisitStamp;
 }
 
 namespace souper {
@@ -128,7 +127,7 @@ bool SolveCandidateMap(llvm::raw_ostream &OS, CandidateMap &M,
 
 bool CheckCandidateMap(llvm::Module &Mod, CandidateMap &M, Solver *S,
                        InstContext &IC) {
-llvm::outs() << "@@@@@@@@ Check Cand Map function @@@@@@\n";
+//llvm::outs() << "@@@@@@@@ Check Cand Map function @@@@@@\n";
   if (!S) {
     llvm::errs() << "Solver required in -check mode\n";
     return false;
@@ -192,13 +191,13 @@ llvm::outs() << "@@@@@@@@ Check Cand Map function @@@@@@\n";
   }
 
   for (const auto &F : Mod) {
-    for (const auto &BB : F) {
-llvm::outs() << "\t @@@ For each BB\n";
-//    for (std::map<llvm::BasicBlock *, bool>::iterator pt = copy.begin(); pt != copy.end(); ++pt) {
-//      if (copy[pt->first]) {
-      for (const auto &Inst : BB) {
-llvm::outs() << "\t\t @@@ Inst in BB \n";
-      //for (const auto &Inst : *(pt->first)) {
+//    for (const auto &BB : F) {
+//llvm::outs() << "\t @@@ For each BB\n";
+    for (std::map<llvm::BasicBlock *, StampType>::iterator pt = copy.begin(); pt != copy.end(); ++pt) {
+      if (copy[pt->first] == In) {
+  //    for (const auto &Inst : BB) {
+//llvm::outs() << "\t\t @@@ Inst in BB \n";
+      for (const auto &Inst : *(pt->first)) {
         llvm::MDNode *ExpectedMD = Inst.getMetadata(ExpectedID);
         if (ExpectedMD) {
           llvm::errs() << "instruction:\n";
@@ -208,7 +207,7 @@ llvm::outs() << "\t\t @@@ Inst in BB \n";
           continue;
         }
       }
-//}
+}
     }
   }
 
