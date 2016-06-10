@@ -35,26 +35,28 @@ void souper::AddToCandidateMap(CandidateMap &M,
 
 void souper::AddModuleToCandidateMap(InstContext &IC, ExprBuilderContext &EBC,
                                      CandidateMap &CandMap, llvm::Module *M) {
-                                     llvm::outs() << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ CMU : AddModuleToCandMap ^^^^^^^^\n";
+                                     //llvm::outs() << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ CMU : AddModuleToCandMap ^^^^^^^^\n";
   for (auto &F : *M) {
     FunctionCandidateSet CS = ExtractCandidates(&F, IC, EBC);
-    llvm::outs() << "\t ******** For each F : Stamp size = " << EBC.BlocksVisitStamp.size() << "\n";
+    //llvm::outs() << "\t ******** For each F : Stamp size = " << EBC.BlocksVisitStamp.size() << "\n";
     for (auto &B : CS.Blocks) {
-      llvm::outs() << "\t ####### For each BB in F \n";
+      //llvm::outs() << "\t ####### For each BB in F \n";
       for (auto &R : B->Replacements) {
-        llvm::outs() << "\t\t ### For each repl in BB \n";
+        //llvm::outs() << "\t\t ### For each repl in BB \n";
         AddToCandidateMap(CandMap, R);
       }
     }
   }
   copy = EBC.BlocksVisitStamp;
   //JUBI: this below for loop is just for debugging-delete this later
+  #if 0
   for (std::map<llvm::BasicBlock *, StampType>::iterator pt = EBC.BlocksVisitStamp.begin(); pt != EBC.BlocksVisitStamp.end(); ++pt) {
 	  if (EBC.BlocksVisitStamp[pt->first])
       llvm::outs() << (pt->first) << " <<<<<<<<<<<<<<<<<<< ******>> " << pt->second << "\n";
    	else
 		  llvm::outs() << "<<<<<<<<<<<<<<<<<    Skip \n";
   }
+  #endif
 }
 
 namespace souper {
@@ -190,14 +192,14 @@ bool CheckCandidateMap(llvm::Module &Mod, CandidateMap &M, Solver *S,
 
   for (const auto &F : Mod) {
 //    for (const auto &BB : F) {
-    llvm::outs() << "~~~~~~~~~~~~~~ In func: Check Cand Map ~~~~~~~~~~~\n";
+    //llvm::outs() << "~~~~~~~~~~~~~~ In func: Check Cand Map ~~~~~~~~~~~\n";
     for (std::map<llvm::BasicBlock *, StampType>::iterator pt = copy.begin(); pt != copy.end(); ++pt) {
-    llvm::outs() << "\t For each BB = " << &(pt->first) <<  " +++ Check its stamp and see insts " << "\n";
+    //llvm::outs() << "\t For each BB = " << &(pt->first) <<  " +++ Check its stamp and see insts " << "\n";
       if (copy[pt->first] == In) {
-      llvm::outs() << "\t This BB has stamp = In \n";
+      //llvm::outs() << "\t This BB has stamp = In \n";
   //    for (const auto &Inst : BB) {
       for (const auto &Inst : *(pt->first)) {
-      llvm::outs() << "\t\t For each Inst in BB \n";
+      //llvm::outs() << "\t\t For each Inst in BB \n";
         llvm::MDNode *ExpectedMD = Inst.getMetadata(ExpectedID);
         if (ExpectedMD) {
           llvm::errs() << "instruction:\n";
