@@ -26,6 +26,8 @@
 
 using namespace llvm;
 
+std::map<llvm::BasicBlock *, souper::StampType> VisitedBB;
+
 void souper::AddToCandidateMap(CandidateMap &M,
                                const CandidateReplacement &CR) {
   M.emplace_back(CR);
@@ -41,6 +43,7 @@ void souper::AddModuleToCandidateMap(InstContext &IC, ExprBuilderContext &EBC,
       }
     }
   }
+  VisitedBB = EBC.BlocksVisitStamp;
 }
 
 namespace souper {
@@ -175,15 +178,17 @@ bool CheckCandidateMap(llvm::Module &Mod, CandidateMap &M, Solver *S,
   }
 
   for (const auto &F : Mod) {
-    for (const auto &BB : F) {
-      for (const auto &Inst : BB) {
-        llvm::MDNode *ExpectedMD = Inst.getMetadata(ExpectedID);
-        if (ExpectedMD) {
-          llvm::errs() << "instruction:\n";
-          Inst.dump();
-          llvm::errs() << "expected simplification, none found\n";
-          OK = false;
-          continue;
+    for (std::map<llvm::BasicBlock *, StampType>::iterator BB = VisitedBB.begin(); BB != VisitedBB.end(); ++BB) {
+      if (VisitedBB[BB->first] == In) {
+        for (const auto &Inst : *(BB->first)) {
+          llvm::MDNode *ExpectedMD = Inst.getMetadata(ExpectedID);
+          if (ExpectedMD) {
+            llvm::errs() << "instruction:\n";
+            Inst.dump();
+            llvm::errs() << "expected simplification, none found\n";
+            OK = false;
+            continue;
+          }
         }
       }
     }

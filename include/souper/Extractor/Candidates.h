@@ -107,9 +107,16 @@ struct BlockInfo {
   std::vector<llvm::BasicBlock *> Preds;
 };
 
+typedef enum {
+  In = 0,
+  Out,
+  Skip
+} StampType;
+
 struct ExprBuilderContext {
   std::map<const llvm::Value *, Inst *> InstMap;
   std::map<llvm::BasicBlock *, BlockInfo> BlockMap;
+  std::map<llvm::BasicBlock *, souper::StampType> BlocksVisitStamp;
 };
 
 FunctionCandidateSet ExtractCandidatesFromPass(

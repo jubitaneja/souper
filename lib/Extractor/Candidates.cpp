@@ -90,6 +90,7 @@ struct ExprBuilder {
   const LoopInfo *LI;
   InstContext &IC;
   ExprBuilderContext &EBC;
+  bool VisitMultiPredBB = false;
 
   void checkIrreducibleCFG(BasicBlock *BB,
                            BasicBlock *FirstBB,
@@ -557,9 +558,128 @@ void ExprBuilder::addPathConditions(BlockPCs &BPCs,
     addPathConditions(BPCs, PCs, VisitedBlocks, Pred);
     if (auto Branch = dyn_cast<BranchInst>(Pred->getTerminator())) {
       if (Branch->isConditional()) {
-        emplace_back_dedup(
-            PCs, get(Branch->getCondition()),
-            IC.getConst(APInt(1, Branch->getSuccessor(0) == BB)));
+        if (auto CmpInst = dyn_cast<ICmpInst>(Branch->getCondition())) {
+          switch (CmpInst->getPredicate()) {
+            case ICmpInst::ICMP_EQ: {
+              if (!VisitMultiPredBB && ((EBC.BlocksVisitStamp[BB] == Out || EBC.BlocksVisitStamp[BB] == Skip) ||
+                  (EBC.BlocksVisitStamp[Pred] == Out || EBC.BlocksVisitStamp[Pred] == Skip))) {
+                std::map<llvm::BasicBlock *, StampType>::iterator Sibling;
+                if (Branch->getSuccessor(0) == BB)
+                  Sibling = EBC.BlocksVisitStamp.find(Branch->getSuccessor(1));
+                else
+                  Sibling = EBC.BlocksVisitStamp.find(Branch->getSuccessor(0));
+                std::map<llvm::BasicBlock *, StampType>::iterator Cur = EBC.BlocksVisitStamp.find(BB);
+                Cur->second = Skip;
+                Sibling->second = Out;
+              } else if (EBC.BlocksVisitStamp[BB] == In) {
+                bool Result = false;
+                Result = isKnownNonEqual(CmpInst->getOperand(0), CmpInst->getOperand(1), DL);
+                if (!Result) {
+                  if (Branch->getSuccessor(0) == BB) {
+                    std::map<llvm::BasicBlock *, StampType>::iterator Cur = EBC.BlocksVisitStamp.find(BB);
+                    std::map<llvm::BasicBlock *, StampType>::iterator Sibling = EBC.BlocksVisitStamp.find(Branch->getSuccessor(1));
+                    Cur->second = In;
+                    Sibling->second = Out;
+                    emplace_back_dedup(
+                        PCs, get(Branch->getCondition()),
+                        IC.getConst(APInt(1, 1)));
+                  } else {
+                    std::map<llvm::BasicBlock *, StampType>::iterator Cur = EBC.BlocksVisitStamp.find(BB);
+                    std::map<llvm::BasicBlock *, StampType>::iterator Sibling = EBC.BlocksVisitStamp.find(Branch->getSuccessor(0));
+                    Cur->second = Out;
+                    Sibling->second = In;
+                    emplace_back_dedup(
+                        PCs, get(Branch->getCondition()),
+                        IC.getConst(APInt(1, 0)));
+                  }
+                } else {
+                  if (Branch->getSuccessor(0) == BB) {
+                    std::map<llvm::BasicBlock *, StampType>::iterator Cur = EBC.BlocksVisitStamp.find(BB);
+                    std::map<llvm::BasicBlock *, StampType>::iterator Sibling = EBC.BlocksVisitStamp.find(Branch->getSuccessor(1));
+                    Cur->second = Out;
+                    Sibling->second = In;
+                    emplace_back_dedup(
+                        PCs, get(Branch->getCondition()),
+                        IC.getConst(APInt(1, 1)));
+                  } else {
+                    std::map<llvm::BasicBlock *, StampType>::iterator Cur = EBC.BlocksVisitStamp.find(BB);
+                    std::map<llvm::BasicBlock *, StampType>::iterator Sibling = EBC.BlocksVisitStamp.find(Branch->getSuccessor(0));
+                    Cur->second = In;
+                    Sibling->second = Out;
+                    emplace_back_dedup(
+                        PCs, get(Branch->getCondition()),
+                        IC.getConst(APInt(1, 0)));
+                  }
+                }
+              }
+              break;
+            }
+            case ICmpInst::ICMP_NE: {
+              if (!VisitMultiPredBB && ((EBC.BlocksVisitStamp[BB] == Out || EBC.BlocksVisitStamp[BB] == Skip) ||
+                  (EBC.BlocksVisitStamp[Pred] == Out || EBC.BlocksVisitStamp[Pred] == Skip))) {
+                std::map<llvm::BasicBlock *, StampType>::iterator Sibling;
+                if (Branch->getSuccessor(0) == BB)
+                  Sibling = EBC.BlocksVisitStamp.find(Branch->getSuccessor(1));
+                else
+                  Sibling = EBC.BlocksVisitStamp.find(Branch->getSuccessor(0));
+                std::map<llvm::BasicBlock *, StampType>::iterator Cur = EBC.BlocksVisitStamp.find(BB);
+                Cur->second = Skip;
+                Sibling->second = Out;
+              } else if (EBC.BlocksVisitStamp[BB] == In) {
+                bool Result = false;
+                Result = isKnownNonEqual(CmpInst->getOperand(0), CmpInst->getOperand(1), DL);
+                if (Result) {
+                  if (Branch->getSuccessor(0) == BB) {
+                    std::map<llvm::BasicBlock *, StampType>::iterator Cur = EBC.BlocksVisitStamp.find(BB);
+                    std::map<llvm::BasicBlock *, StampType>::iterator Sibling = EBC.BlocksVisitStamp.find(Branch->getSuccessor(1));
+                    Cur->second = In;
+                    Sibling->second = Out;
+                    emplace_back_dedup(
+                        PCs, get(Branch->getCondition()),
+                        IC.getConst(APInt(1, 1)));
+                  } else {
+                    std::map<llvm::BasicBlock *, StampType>::iterator Cur = EBC.BlocksVisitStamp.find(BB);
+                    std::map<llvm::BasicBlock *, StampType>::iterator Sibling = EBC.BlocksVisitStamp.find(Branch->getSuccessor(0));
+                    Cur->second = Out;
+                    Sibling->second = In;
+                    emplace_back_dedup(
+                        PCs, get(Branch->getCondition()),
+                        IC.getConst(APInt(1, 0)));
+                  }
+                } else {
+                  if (Branch->getSuccessor(0) == BB) {
+                    std::map<llvm::BasicBlock *, StampType>::iterator Cur = EBC.BlocksVisitStamp.find(BB);
+                    std::map<llvm::BasicBlock *, StampType>::iterator Sibling = EBC.BlocksVisitStamp.find(Branch->getSuccessor(1));
+                    Cur->second = Out;
+                    Sibling->second = In;
+                    emplace_back_dedup(
+                        PCs, get(Branch->getCondition()),
+                        IC.getConst(APInt(1, 1)));
+                  } else {
+                    std::map<llvm::BasicBlock *, StampType>::iterator Cur = EBC.BlocksVisitStamp.find(BB);
+                    std::map<llvm::BasicBlock *, StampType>::iterator Sibling = EBC.BlocksVisitStamp.find(Branch->getSuccessor(0));
+                    Cur->second = In;
+                    Sibling->second = Out;
+                    emplace_back_dedup(
+                        PCs, get(Branch->getCondition()),
+                        IC.getConst(APInt(1, 0)));
+                  }
+                }
+              }
+              break;
+            }
+            default: {
+              emplace_back_dedup(
+                  PCs, get(Branch->getCondition()),
+                  IC.getConst(APInt(1, Branch->getSuccessor(0) == BB)));
+              break;
+           }
+          }
+        } else {
+          emplace_back_dedup(
+              PCs, get(Branch->getCondition()),
+              IC.getConst(APInt(1, Branch->getSuccessor(0) == BB)));
+        }
       }
     } else if (auto Switch = dyn_cast<SwitchInst>(Pred->getTerminator())) {
       Inst *Cond = get(Switch->getCondition());
@@ -602,10 +722,12 @@ void ExprBuilder::addPathConditions(BlockPCs &BPCs,
 
     VisitedBlocks.insert(BI.B);
     for (unsigned i = 0; i < BI.Preds.size(); ++i) {
+      VisitMultiPredBB = true;
       std::vector<InstMapping> PCs;
       addPathConditions(BPCs, PCs, VisitedBlocks, BI.Preds[i]);
       for (auto PC : PCs)
         BPCs.emplace_back(BlockPCMapping(BI.B, i, PC));
+      VisitMultiPredBB = false;
     }
   }
 }
@@ -696,26 +818,35 @@ void ExtractExprCandidates(Function &F, const LoopInfo *LI,
                            FunctionCandidateSet &Result) {
   ExprBuilder EB(Opts, F.getParent(), LI, IC, EBC);
 
+  for (auto &BB : F)
+    EBC.BlocksVisitStamp.insert(std::pair<llvm::BasicBlock *, StampType>(&BB, In));
   for (auto &BB : F) {
-    std::unique_ptr<BlockCandidateSet> BCS(new BlockCandidateSet);
-    for (auto &I : BB) {
-      if (I.getType()->isIntegerTy())
-        BCS->Replacements.emplace_back(&I, InstMapping(EB.get(&I), 0));
-    }
-    if (!BCS->Replacements.empty()) {
-      std::unordered_set<Block *> VisitedBlocks;
-      EB.addPathConditions(BCS->BPCs, BCS->PCs, VisitedBlocks, &BB);
-
-      InstClasses Vars, BPCVars;
-      auto PCSets = AddPCSets(BCS->PCs, Vars);
-      auto BPCSets = AddBlockPCSets(BCS->BPCs, BPCVars);
-
-      for (auto &R : BCS->Replacements) {
-        std::tie(R.BPCs, R.PCs) = 
-          GetRelevantPCs(BCS->BPCs, BCS->PCs, BPCSets, PCSets, Vars, R.Mapping);
+    std::map<llvm::BasicBlock *, StampType>::iterator Cur = EBC.BlocksVisitStamp.find(&BB);
+    if (Cur->second == Out) {
+      Cur->second = Skip;
+    } else {
+      Cur->second = In;
+      std::unique_ptr<BlockCandidateSet> BCS(new BlockCandidateSet);
+      for (auto &I : BB) {
+        if (I.getType()->isIntegerTy())
+          BCS->Replacements.emplace_back(&I, InstMapping(EB.get(&I), 0));
       }
+      if (!BCS->Replacements.empty()) {
+        std::unordered_set<Block *> VisitedBlocks;
+        EB.addPathConditions(BCS->BPCs, BCS->PCs, VisitedBlocks, &BB);
 
-      Result.Blocks.emplace_back(std::move(BCS));
+        InstClasses Vars, BPCVars;
+        auto PCSets = AddPCSets(BCS->PCs, Vars);
+        auto BPCSets = AddBlockPCSets(BCS->BPCs, BPCVars);
+
+        for (auto &R : BCS->Replacements) {
+          std::tie(R.BPCs, R.PCs) = 
+            GetRelevantPCs(BCS->BPCs, BCS->PCs, BPCSets, PCSets, Vars, R.Mapping);
+        }
+
+        if (EBC.BlocksVisitStamp[&BB] == In)
+          Result.Blocks.emplace_back(std::move(BCS));
+      }
     }
   }
 }
