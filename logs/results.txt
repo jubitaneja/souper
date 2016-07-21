@@ -1,17 +1,17 @@
----------------------------------------------------
-# Results of building clang-3.8.1 using souper
----------------------------------------------------
+---------------------------------------------------------------------
+# Results of building clang-3.8.1 using souper (Release build type))
+---------------------------------------------------------------------
 
 Machine: Ubuntu-14.04.4 (x86_64)
 clang: 3.8.1
 Souper recent commit id: 552ee6b81d8bd629def9baa42eef5ec2caedc659
 --------------------------------------------------------------------------------------------------------------------
-Parameters			clang-default		sclang-master
+Parameters                clang-default     sclang-master
 --------------------------------------------------------------------------------------------------------------------
-Build time                          1h08m                   7h03m
-size of clang                       63.3MB                  62.6MB
-#static profile                     -                       37344
-#optimizations in cache             -                       4752
-Test passed			    15374		    15374
-Test failed			    129			    129
-Test unsupported		    134			    134
+Build time                  0h23m             7h03m
+size of clang               64.55MB           62.49MB
+#static profile             -                 36809
+#optimizations in cache     -                 4459
+Test passed                 24222             24222
+Test failed                 145               145
+Test unsupported            152               152

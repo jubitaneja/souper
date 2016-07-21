@@ -121,9 +121,10 @@ Section E: How to build LLVM using souper?
    $ cd path/to/llvm_build_dir (as mentioned in Step 3)
    $ make CC=path/to/sclang CXX=path/to/sclang++
 
-7. Install and Test
+7. Install and Test clang
+   $ mkdir path/to/install/directory
    $ make install
-   $ make check all
+   $ make check-all
 
 8. Dump the cached optimizations data from redis as:
    $ path/to/souper_build_dir/cache_dump
