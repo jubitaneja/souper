@@ -6,12 +6,14 @@ Machine: Ubuntu-14.04.4 (x86_64)
 clang: 3.8.1
 Souper recent commit id: 552ee6b81d8bd629def9baa42eef5ec2caedc659
 --------------------------------------------------------------------------------------------------------------------
-Parameters                clang-default     sclang-master       sclang-signbits
+Parameters                clang-default     sclang-master       sclang-signbits       sclang-demanded-bits
+SOUPER_INFER_INT=1          N.A.              Yes                 Yes                   No
+SOUPER_NO_INFER=1           N.A.              No                  No                    Yes
 --------------------------------------------------------------------------------------------------------------------
-Build time                  0h23m             12h55m              12h55m
-size of clang               64.55MB           61.054798MB         61.054686MB
-#static profile             -                 71448               71449
-#optimizations in cache     -                 6997                6999
-Test passed                 24222             24222               21404
-Test failed                 145               145                 145
-Test unsupported            152               152                 152
+Build time                  0h23m             12h55m              12h55m                0h022m
+size of clang               64.55MB           61.054798MB         61.054686MB           62.174461MB
+#static profile             -                 71448               71449                 -
+#optimizations in cache     -                 6997                6999                  -
+Test passed                 24222             24222               21404                 24222
+Test failed                 145               145                 145                   145
+Test unsupported            152               152                 152                   152
