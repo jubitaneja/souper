@@ -397,9 +397,12 @@ Inst *ExprBuilder::build(Value *V) {
         BI.B = IC.createBlock(BI.Preds.size());
       }
       std::vector<Inst *> Incomings;
+        llvm::outs() << "********* Harvest Phi preds *******\n";
       for (auto Pred : BI.Preds) {
         Incomings.push_back(get(Phi->getIncomingValueForBlock(Pred)));
       }
+      for (auto in : Incomings)
+        llvm::outs() << "Phi Pred# kind is : " << Inst::getKindName(in->K) << "\n";
       return IC.getPhi(BI.B, Incomings);
     }
   } else if (auto EV = dyn_cast<ExtractValueInst>(V)) {

@@ -209,7 +209,9 @@ void ReplacementContext::printPCs(const std::vector<InstMapping> &PCs,
                                   llvm::raw_ostream &Out, bool printNames) {
   for (const auto &PC : PCs) {
     std::string SRef = printInst(PC.LHS, Out, printNames);
+    //llvm::outs() << "PC lhs str = " << SRef << "\n";
     std::string RRef = printInst(PC.RHS, Out, printNames);
+    //llvm::outs() << "PC Rhs str = " << RRef << "\n";
     Out << "pc " << SRef << " " << RRef << '\n';
   }
 }
@@ -220,8 +222,11 @@ void ReplacementContext::printBlockPCs(const BlockPCs &BPCs,
   for (auto &BPC : BPCs) {
     assert(BPC.B && "NULL Block pointer!");
     std::string BlockName = printBlock(BPC.B, Out);
+    //llvm::outs() << "Block Name = " << BlockName << "\n";
     std::string SRef = printInst(BPC.PC.LHS, Out, printNames);
+    //llvm::outs() << "@@@@@@@@@@@@@@@@@@@@@@@ SREF of blockpc =  " << SRef << "\n";
     std::string RRef = printInst(BPC.PC.RHS, Out, printNames);
+    //llvm::outs() << "@@@@@@@@@@@@@@@@@@@@@@@ RREF of blockpc =  " << RRef << "\n";
     Out << "blockpc %" << BlockName << " " << BPC.PredIdx << " ";
     Out << SRef << " " << RRef << '\n';
   }
@@ -689,6 +694,9 @@ std::string souper::GetReplacementLHSString(const BlockPCs &BPCs,
   std::string Str;
   llvm::raw_string_ostream SS(Str);
   PrintReplacementLHS(SS, BPCs, PCs, LHS, Context);
+  //llvm::outs() << "\n\n$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n\n";
+  //llvm::outs() << SS.str();
+  //llvm::outs() << "\n\n$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n\n";
   return SS.str();
 }
 

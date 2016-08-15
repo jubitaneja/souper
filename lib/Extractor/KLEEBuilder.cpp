@@ -650,18 +650,28 @@ ref<Expr> ExprBuilder::createPhiPred(
 
   ref<Expr> Pred = klee::ConstantExpr::alloc(1, 1);
   unsigned Num = BlockConstraints[Phi->B];
+  llvm::outs() << "Path number = " << Num << "\n";
   const auto &PredExpr = BlockPredMap[Phi->B];
   // Sanity checks
   assert(PredExpr.size() && "there must be path predicates for the UBs");
   assert(PredExpr.size() == Phi->Ops.size()-1 && "phi predicate size mismatch");
   // Add the predicate(s)
   if (Num == 0)
+  {
     Pred = AndExpr::create(Pred, PredExpr[0]);
+    llvm::outs() << "Pred expr for num = 0\n"; Pred->dump(); llvm::outs() << "\n";
+  }
   else
+  {
     Pred = AndExpr::create(Pred, Expr::createIsZero(PredExpr[Num-1]));
+    llvm::outs() << "JUBI inteerested in seeing how the block pred expressions are constructed for more than 2 incoming vals of phi inst\n";
+    llvm::outs() << "???? JUBI ??????? Pred expr for num = " << Num << "\n"; Pred->dump(); llvm::outs() << "\n";
+  }
+  llvm::outs() << "size of pred expr = " << PredExpr.size() << "\n";
   for (unsigned B = Num; B < PredExpr.size(); ++B)
     Pred = AndExpr::create(Pred, PredExpr[B]);
 
+llvm::outs() << "final pred returned by createPhiPred()= \n"; Pred->dump(); llvm::outs() << "\n";
   return Pred;
 }
 
@@ -670,11 +680,15 @@ ref<Expr> ExprBuilder::createPathPred(
     std::map<Block *, unsigned> &BlockConstraints, PhiMap &CachedPhis) {
   ref<Expr> Pred = klee::ConstantExpr::alloc(1, 1);
   for (const auto &Phi : Phis) {
+  llvm::outs() << "For each phi inst in list of Phis, number of ops of phi inst = " << Phi->Ops.size() << "\n";
     if (Phi->Ops.size() == 1)
       continue;
     ref<Expr> PhiPred = createPhiPred(BlockConstraints, Phi);
 
     PhiMap::iterator PI = CachedPhis.find(Phi);
+      llvm::outs() << "PI->first = " << Inst::getKindName(PI->first->K) << "\n";
+      llvm::outs() << "CurrentPhi kind = " << Inst::getKindName(CurrentPhi->K) << "\n";
+      llvm::outs() << "PI->expr list size = " << PI->second.size() << "\n"; 
     assert((PI != CachedPhis.end()) && "No cached Phi?");
     if (PI->first != CurrentPhi && PI->second.size() != 0) {
       // Use cached Expr along each path which has UB Insts,
@@ -688,7 +702,9 @@ ref<Expr> ExprBuilder::createPathPred(
     else {
       CachedPhis[CurrentPhi].push_back(PhiPred);
       Pred = AndExpr::create(Pred, PhiPred);
+      llvm::outs() << "Pred expr to be returned by createPathPred()= \n"; Pred->dump(); llvm::outs() << "\n";
     }
+    llvm::outs() << "++++++++++++ Cached Phis size = " << CachedPhis.size() << "\n";
   }
   return Pred;
 }
@@ -888,11 +904,25 @@ ref<Expr> ExprBuilder::getBlockPCs() {
   for (const auto &I : PhiInsts) {
     assert((CachedPhis.count(I) == 0) && "We cannot revisit a cached Phi");
     // Recursively collect BlockPCs
+    llvm::outs() << "++++ for each Phi inst ++++ \tI->K = " << Inst::getKindName(I->K) << "\n";
     std::vector<std::unique_ptr<BlockPCPhiPath>> BlockPCPhiPaths;
     BlockPCPhiPath *Current = new BlockPCPhiPath;
     BlockPCPhiPaths.push_back(
                         std::move(std::unique_ptr<BlockPCPhiPath>(Current)));
+                        llvm::outs() << "\n #######################################################\n";
     getBlockPCPhiPaths(I, Current, BlockPCPhiPaths, CachedPhis);
+    llvm::outs() << "\n #######################################################\n";
+    llvm::outs() << "Lets print all paths of phi inst so far ...\n";
+    for (const auto &p : BlockPCPhiPaths) {
+    llvm::outs() << "For each PATH **************** \n";
+      llvm::outs() << "path->number of Phi insts = " << p->Phis.size() << "\n";
+      for (const auto &pi : p->Phis)
+        llvm::outs() << "\t path->phi inst kind is : " << Inst::getKindName(pi->K) << "\n";
+      llvm::outs() << "path->number of PCs = " << p->PCs.size() << "\n";
+      for (const auto &ppc : p->PCs) {
+        llvm::outs() << "\t path->PCs expr ==== \n"; ppc->dump(); llvm::outs() << "\n";
+      }
+    }
     CachedPhis[I] = {};
     // For each found path
     for (const auto &Path : BlockPCPhiPaths) {
@@ -903,11 +933,16 @@ ref<Expr> ExprBuilder::getBlockPCs() {
       for (const auto &PC : Path->PCs) {
         Ante = AndExpr::create(Ante, PC);
       }
+      llvm::outs() << "After collecting all PCs, we get expr as : \n"; Ante->dump(); llvm::outs() << "\n";
       // Create path predicate
+      llvm::outs() << "----------------------------- START: create path preds -------------------\n";
       ref<Expr> Pred = createPathPred(I, Path->Phis, Path->BlockConstraints,
                                       CachedPhis);
+    llvm::outs() << "********** Cached Phis size = " << CachedPhis.size() << "\n";
+      llvm::outs() << "----------------------------- END: create path preds -------------------\n";
       // Add predicate->UB constraint
       Result = AndExpr::create(Result, Expr::createImplies(Pred, Ante));
+      llvm::outs() << "----==============----- Result expr ====\n"; Result->dump(); llvm::outs() << "\n----============\n";
     }
   }
   return Result;
@@ -919,6 +954,7 @@ void ExprBuilder::getBlockPCPhiPaths(
 
   const std::vector<Inst *> &Ops = I->orderedOps();
   if (I->K != Inst::Phi) {
+  llvm::outs() << "now Inst is not Phi, number of Ops = " << Ops.size() << "\n";
     for (unsigned J = 0; J < Ops.size(); ++J)
       getBlockPCPhiPaths(Ops[J], Current, Paths, CachedPhis);
     return;
@@ -936,26 +972,38 @@ void ExprBuilder::getBlockPCPhiPaths(
   std::vector<BlockPCPhiPath *> Tmp = { Current };
   // Create copies of the current path
   for (unsigned J = 1; J < Ops.size(); ++J) {
+  llvm::outs() << "\t for each operand of Phi : Op->K = " << Inst::getKindName(Ops[J]->K) << "\n";
     BlockPCPhiPath *New = new BlockPCPhiPath;
     *New = *Current;
     New->BlockConstraints[I->B] = J;
+    llvm::outs() << "Phi->Op" << J << "->BlockConstraint [Path number] = " << J << "\n";
     Paths.push_back(std::move(std::unique_ptr<BlockPCPhiPath>(New)));
     Tmp.push_back(New);
   }
   // Original path takes the first branch
   Current->BlockConstraints[I->B] = 0;
+  llvm::outs() << "Phi->BlockConstraint [Path number] = 0\n"; 
 
   auto PCMap = BlockPCMap.find(I->B);
   if (PCMap != BlockPCMap.end()) {
+  llvm::outs() << "could find something in PCMap w.r.t. block of inst\n";
     for (unsigned J = 0; J < Ops.size(); ++J) {
+    llvm::outs() << "for op #" << J << "\n";
       auto P = PCMap->second.find(J);
       if (P != PCMap->second.end())
+      {
         Tmp[J]->PCs.push_back(P->second);
+        llvm::outs() << "PCs pushed to Tmp " << J << "\n";
+        P->second->dump(); llvm::outs() << "\n";
+      }
     }
   }
   // Continue recursively
   for (unsigned J = 0; J < Ops.size(); ++J)
+  {
+  llvm::outs() << "build paths for op #" << J << " Kind = " << Inst::getKindName(Ops[J]->K) << "\n";
     getBlockPCPhiPaths(Ops[J], Tmp[J], Paths, CachedPhis);
+  }
 }
 
 ref<Expr> ExprBuilder::getZeroBitsMapping(Inst *I) {
@@ -987,6 +1035,8 @@ CandidateExpr souper::GetCandidateExprForReplacement(
   ExprBuilder EB(CE.Arrays, CE.ArrayVars);
   // Build LHS
   ref<Expr> LHS = EB.get(Mapping.LHS);
+  llvm::outs() << "LHS Kind = " << Inst::getKindName(Mapping.LHS->K) << "\n";
+  llvm::outs() << "LHS Expr = \n"; LHS->dump(); llvm::outs() << "\n";
   ref<Expr> Ante = klee::ConstantExpr::alloc(1, 1);
   for (const auto I : CE.ArrayVars) {
     if (I) {
@@ -1004,10 +1054,14 @@ CandidateExpr souper::GetCandidateExprForReplacement(
   }
   // Build PCs
   for (const auto &PC : PCs) {
+  llvm::outs() << "--- found PCs ---\n";
+  llvm::outs() << "PC->LHS = " << Inst::getKindName(PC.LHS->K) << "\n";
+  llvm::outs() << "PC->RHS = " << Inst::getKindName(PC.RHS->K) << "\n";
     Ante = AndExpr::create(Ante, EB.getInstMapping(PC));
   }
   // Build BPCs 
   if (BPCs.size()) {
+  llvm::outs() << "===== found BlockPC =====\n";
     EB.setBlockPCMap(BPCs);
     Ante = AndExpr::create(Ante, EB.getBlockPCs());
   }
@@ -1035,6 +1089,7 @@ CandidateExpr souper::GetCandidateExprForReplacement(
   // (LHS UB && (B)PCs && (B)PCs UB) => Cons && UB
   CE.E = Expr::createImplies(Ante, Cons);
 
+llvm::outs() << "^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^  KLEE expr at the end is \n"; CE.E->dump(); llvm::outs() << "\n";
   return CE;
 }
 
