@@ -431,6 +431,7 @@ ref<Expr> ExprBuilder::build(Inst *I) {
     // a constant zero.
     ref<Expr> R = get(Ops[1]);
     if (R->isZero()) {
+    llvm::outs() << "WHAT?????????????????????????????????????????????????????????????????? RHS of SREm is 0\n";
       recordUBInstruction(I, klee::ConstantExpr::create(0, 1));
       return klee::ConstantExpr::create(0, Ops[1]->Width);
     }
@@ -476,7 +477,12 @@ ref<Expr> ExprBuilder::build(Inst *I) {
   case Inst::And:
     return buildAssoc(AndExpr::create, Ops);
   case Inst::Or:
+  {
+  llvm::outs() << "\n&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&\n";
+  llvm::outs() << "Op0 of OR operator = " << Inst::getKindName(Ops[0]->K) << "\n";
+  llvm::outs() << "Op1 of OR operator = " << Inst::getKindName(Ops[1]->K) << "\n";
     return buildAssoc(OrExpr::create, Ops);
+  }
   case Inst::Xor:
     return buildAssoc(XorExpr::create, Ops);
   case Inst::Shl: {
@@ -768,7 +774,9 @@ ref<Expr> ExprBuilder::getUBInstCondition() {
   std::set<Inst *> UsedUBInsts;
   ref<Expr> Result = klee::ConstantExpr::create(1, Expr::Bool);
   // For each Phi instruction
+  llvm::outs() << "&&&&&&&&&&& Func: getUBInstCondition()  &&&&&&&&&&&&\n";
   for (const auto &I : PhiInsts) {
+  llvm::outs() << "for each Phi inst, build structures of BC, Phis and UB now \n";
     assert((CachedPhis.count(I) == 0) && "We cannot revisit a cached Phi");
     // Recursively collect UB instructions
     // on the block constrained Phi branches
@@ -779,19 +787,28 @@ ref<Expr> ExprBuilder::getUBInstCondition() {
     CachedPhis[I] = {};
     // For each found path
     for (const auto &Path : PhiPaths) {
-      if (!Path->UBInsts.size())
+    llvm::outs() << "&&& for each found path \n";
+      if (!Path->UBInsts.size()) {
+      llvm::outs() << "Path->UB inst size = 0\n";
         continue;
+      }
+      llvm::outs() << "Path->UB inst size = " << Path->UBInsts.size() << "\n";
       // Aggregate collected UB constraints
       ref<Expr> Ante = klee::ConstantExpr::alloc(1, 1);
       for (const auto &I : Path->UBInsts) {
+      llvm::outs() << "UB inst here = " << Inst::getKindName(I->K) << "\n";
         Ante = AndExpr::create(Ante, UBExprMap[I]);
+        llvm::outs() << "UB constraints collected = \n"; Ante->dump(); llvm::outs() << "\n";
         UsedUBInsts.insert(I);
       }
+      llvm::outs() << "After collecting all UB constraints for this path === Ante = \n"; Ante->dump(); llvm::outs() << "\n";
       // Create path predicate
+      llvm::outs() << "\n In getUBInstCondition(), call: createPathPred()\n";
       ref<Expr> Pred = createPathPred(I, Path->Phis, Path->BlockConstraints,
                                       CachedPhis);
       // Add predicate->UB constraint
       Result = AndExpr::create(Result, Expr::createImplies(Pred, Ante));
+      llvm::outs() << "Result expr in getUBInstCond == \n"; Result->dump(); llvm::outs() << "\n";
     }
   }
   // Add the unconditional UB constraints at the top level
@@ -926,8 +943,12 @@ ref<Expr> ExprBuilder::getBlockPCs() {
     CachedPhis[I] = {};
     // For each found path
     for (const auto &Path : BlockPCPhiPaths) {
+    llvm::outs() << "----- For each found Path : PC's size = " << Path->PCs.size() << "\n";
       if (!Path->PCs.size())
+      {
+      llvm::outs() << "PCs for this path = 0, so I wont aggregate all PCs of this path and nor build any blockpreds for this path \n";
         continue;
+      }
       // Aggregate collected BlockPC constraints
       ref<Expr> Ante = klee::ConstantExpr::alloc(1, 1);
       for (const auto &PC : Path->PCs) {
@@ -941,6 +962,11 @@ ref<Expr> ExprBuilder::getBlockPCs() {
     llvm::outs() << "********** Cached Phis size = " << CachedPhis.size() << "\n";
       llvm::outs() << "----------------------------- END: create path preds -------------------\n";
       // Add predicate->UB constraint
+      llvm::outs() << "Taneja to see details for blockpc construction: Pred = \n"; Pred->dump(); llvm::outs() << "\n";
+      llvm::outs() << "Taneja to see details for blockpc construction: Ante = \n"; Ante->dump(); llvm::outs() << "\n";
+      ref<Expr> what = Expr::createImplies(Pred, Ante);
+      llvm::outs() << "Taneja to see what pred=?Ante gives me before it merges into result expr \n"; what->dump(); llvm::outs() << "\n";
+      llvm::outs() << "Taneja t Result so far to make final expr Result = \n"; Result->dump(); llvm::outs() << "\n";
       Result = AndExpr::create(Result, Expr::createImplies(Pred, Ante));
       llvm::outs() << "----==============----- Result expr ====\n"; Result->dump(); llvm::outs() << "\n----============\n";
     }
@@ -963,7 +989,10 @@ void ExprBuilder::getBlockPCPhiPaths(
   // Early terminate because this phi has been processed.
   // We will use its cached predicates.
   if (CachedPhis.count(I))
+  {
+  llvm::outs() << "this is phi inst and its cached already, so lets just return to main func with all DS filled up\n";
     return;
+  }
   Current->Phis.push_back(I);
   // Based on the dependency chain, looks like we would never
   // encounter this case.
@@ -1058,38 +1087,149 @@ CandidateExpr souper::GetCandidateExprForReplacement(
   llvm::outs() << "PC->LHS = " << Inst::getKindName(PC.LHS->K) << "\n";
   llvm::outs() << "PC->RHS = " << Inst::getKindName(PC.RHS->K) << "\n";
     Ante = AndExpr::create(Ante, EB.getInstMapping(PC));
+    llvm::outs() << "Jubi Taneja: check PC ==== \n"; Ante->dump(); llvm::outs() << "\n";
   }
   // Build BPCs 
   if (BPCs.size()) {
   llvm::outs() << "===== found BlockPC =====\n";
     EB.setBlockPCMap(BPCs);
     Ante = AndExpr::create(Ante, EB.getBlockPCs());
+    llvm::outs() << "\n *********** After returning from : getBlockPCs() Ante expr = *********\n";
+    Ante->dump(); llvm::outs() << "\n********************\n";
   }
   // Get UB constraints of LHS and (B)PCs
   ref<Expr> LHSPCsUB = klee::ConstantExpr::create(1, Expr::Bool);
   if (ExploitUB)
     LHSPCsUB = EB.getUBInstCondition();
+    llvm::outs() << "+++++++++ LHSPCsUB = \n"; LHSPCsUB->dump(); llvm::outs() << "\n"; 
   // Build RHS
   ref<Expr> RHS = EB.get(Mapping.RHS);
+  llvm::outs() << "++++++++++++ RHS = \n"; RHS->dump(); llvm::outs() << "\n";
   // Get all UB constraints (LHS && (B)PCs && RHS)
   ref<Expr> UB = klee::ConstantExpr::create(1, Expr::Bool);
   if (ExploitUB)
     UB = EB.getUBInstCondition();
+    llvm::outs() << "+++++++++ UB = \n"; UB->dump(); llvm::outs() << "\n";
 
   ref<Expr> Cons;
   if (Negate) // (LHS != RHS)
     Cons = NeExpr::create(LHS, RHS);
   else        // (LHS == RHS)
     Cons = EqExpr::create(LHS, RHS);
+    llvm::outs() << "+++++++ Cons = LHS EQ RHS or LHS Ne RHS == \n"; Cons->dump(); llvm::outs() << "\n";
   // Cons && UB
   if (Mapping.RHS->K != Inst::Const)
     Cons = AndExpr::create(Cons, UB);
+    llvm::outs() << "++++++ Cons = Cons && UB === \n"; Cons->dump(); llvm::outs() << "\n";
   // (LHS UB && (B)PCs && (B)PCs UB)
   Ante = AndExpr::create(Ante, LHSPCsUB);
+  llvm::outs() << "Ante = LHSUB and BPCs and BPC-UB == \n"; Ante->dump(); llvm::outs() << "\n";
   // (LHS UB && (B)PCs && (B)PCs UB) => Cons && UB
   CE.E = Expr::createImplies(Ante, Cons);
 
-llvm::outs() << "^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^  KLEE expr at the end is \n"; CE.E->dump(); llvm::outs() << "\n";
+llvm::outs() << "^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^  KLEE expr at the end is : Ante+>Cons\n"; CE.E->dump(); llvm::outs() << "\n";
+
+#if 0
+llvm::outs() << "BlockPredMap size == " << EB.BlockPredMap.size() << "\n";
+//ref<Expr> D = klee::ConstantExpr::create(1, 1);
+for (std::map<Block *, std::vector<ref<Expr>>>::iterator it=EB.BlockPredMap.begin(); it!=EB.BlockPredMap.end(); ++it) {
+    llvm::outs() << it->first->Number << " => " << it->second.size() << '\n';
+      //for (std::vector<ref<Expr>>::iterator vt = it->second.begin() ; vt != it->second.end(); ++vt) {
+        //llvm::outs() << "expr == \n"; D->dump(); llvm::outs() << "\n";
+      //}
+}
+    // Blockpred expressions
+    ref<Expr> BP = EB.makeSizedArrayRead(1, "blockpred", 0);
+    llvm::outs() << "BlockPred #1 \n"; BP->dump(); llvm::outs() << "\n";
+    ref<Expr> BP0 = EB.makeSizedArrayRead(1, "blockpred", 0);
+    llvm::outs() << "Blockpred #2 \n"; BP0->dump(); llvm::outs() << "\n";
+
+    // variables x0 and x1
+
+  StringRef NameStr = "x1";
+  EB.Arrays.emplace_back(
+      new Array(EB.ArrayNames.makeName(NameStr), 1, 0, 0, Expr::Int32, 32));
+  UpdateList UL(EB.Arrays.back().get(), 0);
+
+  ref<Expr> N3 = ReadExpr::create(UL, klee::ConstantExpr::alloc(0, Expr::Int32));
+  llvm::outs() << "Var #1 == \n"; N3->dump(); llvm::outs() << "\n";
+
+  NameStr = "x0";
+  EB.Arrays.emplace_back(
+      new Array(EB.ArrayNames.makeName(NameStr), 1, 0, 0, 8, 8));
+  UpdateList UL2(EB.Arrays.back().get(), 0);
+
+
+  ref<Expr> N5 = ReadExpr::create(UL2, klee::ConstantExpr::alloc(0, 8));
+  llvm::outs() << "Var #2 == \n"; N5->dump(); llvm::outs() << "\n";
+
+  // x1==0
+  ref<Expr> N2 = EqExpr::create(klee::ConstantExpr::create(0, 32), N3);
+  // x1==0 is false
+  ref<Expr> N8 = EqExpr::create(klee::ConstantExpr::create(0, 1), N2);
+  // x0==0
+  ref<Expr> N4 = EqExpr::create(klee::ConstantExpr::create(0, 8), N5);
+  // x0==0 is false
+  ref<Expr> N7 = EqExpr::create(klee::ConstantExpr::create(0, 1), N4);
+  //If Pred0 is true, i.e. (Eq false Pred0)
+  ref<Expr> N0 = EqExpr::create(klee::ConstantExpr::create(0, 1), AndExpr::create(BP0, BP0));
+  // [Pred0=>x1==0 and x0==0] AND 
+  // [Pred0 is false => x1==0 and x0 NE 0] AND 
+  // [Pred => x1 NE 0]
+  ref<Expr> Constraint = AndExpr::create(OrExpr::create(N0, AndExpr::create(N2, N4)), OrExpr::create(BP0, AndExpr::create(N2, N7)));
+  llvm::outs() << "Constraint == \n"; Constraint->dump(); llvm::outs() << "\n";
+  ref<Expr> pred_inner = AndExpr::create(Expr::createImplies(BP0, AndExpr::create(N2, N4)),
+                                         Expr::createImplies(EqExpr::create(BP0, klee::ConstantExpr::create(0, 1)),
+                                                             AndExpr::create(N2, N7)));
+  ref<Expr> pred_outer = AndExpr::create(AndExpr::create(pred_inner, Expr::createImplies(BP, N8)),
+                                         Expr::createImplies(EqExpr::create(BP, klee::ConstantExpr::create(0, 1)), N2));
+//                                                             EqExpr::create(pred_inner, klee::ConstantExpr::create(0, 1))));
+  ref<Expr> bpc = AndExpr::create(Expr::createImplies(BP0, AndExpr::create(N2, N4)),
+                                AndExpr::create(Expr::createImplies(EqExpr::create(BP0, klee::ConstantExpr::create(0, 1)),
+                                                                    AndExpr::create(N2, N7)), 
+                                               Expr::createImplies(BP, N8)));
+//  llvm::outs() << "Seems to be correcrt Constraint == \n"; bpc->dump(); llvm::outs() << "\n";
+  // sext x0
+  ref<Expr> N6 = SExtExpr::create(N5, Expr::Int32);
+  // p1 = Select pred0? add x0+1 : sext x0
+  ref<Expr> PhiInst = SelectExpr::create(BP0, AddExpr::create(klee::ConstantExpr::create(1, Expr::Int32), N6), N6);
+  llvm::outs() << "***** Inner phi == \n"; PhiInst->dump(); llvm::outs() << "\n";
+  // phi2 = select pred? x1==0? : (Eq 1 p1)
+  ref<Expr> Phi2 = SelectExpr::create(BP, N2,
+                                          EqExpr::create(klee::ConstantExpr::create(1, Expr::Int32), PhiInst) /* Eq 1 p1*/);
+  llvm::outs() << "Outer Phi === \n"; Phi2->dump(); llvm::outs() << "\n";
+  // OR (phi2, [(x1<1) and x1 NE 0])
+//  ref<Expr> E2 = OrExpr::create(Phi2, AndExpr::create(N8, SltExpr::create(N3, klee::ConstantExpr::create(1, Expr::Int32))));
+
+
+
+
+  //ref<Expr> E2 = OrExpr::create(Phi2, SltExpr::create(N3, klee::ConstantExpr::create(1, Expr::Int32)));
+  //apply constraint on each sub-part of final resulting expr. i.e. on slt sub-tree and phi2 sub-tree here
+  ref<Expr> E2 = OrExpr::create(AndExpr::create(Phi2, pred_outer),
+                 AndExpr::create(AndExpr::create(SltExpr::create(N3, klee::ConstantExpr::create(1, Expr::Int32)), N2),
+                                 AndExpr::create(SltExpr::create(N3, klee::ConstantExpr::create(1, Expr::Int32)), N8)));
+  #if 0
+  ref<Expr> E2 = OrExpr::create(AndExpr::create(EqExpr::create(klee::ConstantExpr::create(0, 1), BP0),
+                                                EqExpr::create(klee::ConstantExpr::create(0, Expr::Int32), PhiInst)), 
+                                SltExpr::create(N3, klee::ConstantExpr::create(1, Expr::Int32)));
+   #endif
+   //CE.E = Expr::createImplies(Constraint, E2);
+
+   //CE.E = Expr::createImplies(pred_outer, E2); //jubi
+   //llvm::outs() << "\n ********* My expression ***** \n"; CE.E->dump(); llvm::outs() << "\n";
+
+  // pred+>x1==0 and  Pred is false=>x1==0 is false
+  ref<Expr> bpc_single = AndExpr::create(Expr::createImplies(BP0, N2),
+                                         Expr::createImplies(EqExpr::create(BP0, klee::ConstantExpr::create(0, 1)),
+                                                             N8));
+  ref<Expr> Phi1 = SelectExpr::create(BP0, AddExpr::create(klee::ConstantExpr::create(1, Expr::Int32), N3), N3);
+  ref<Expr> res_single = OrExpr::create(EqExpr::create(klee::ConstantExpr::create(1, Expr::Int32), Phi1),
+                                        SltExpr::create(N3, klee::ConstantExpr::create(1, Expr::Int32)));
+   //CE.E = Expr::createImplies(bpc_single, res_single);
+ //  llvm::outs() << "\n ********* My expression ***** \n"; CE.E->dump(); llvm::outs() << "\n";
+   
+#endif
   return CE;
 }
 
