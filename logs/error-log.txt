@@ -1,0 +1,348 @@
+[ 96%] Generating sanitizer_nolibc_test_main.x86_64.o
+clang-4.0: /home/jubi/superopt/blockpc-fix/test/llvm/tools/clang/lib/AST/ASTContext.cpp:3218: clang::QualType clang::ASTContext::getFunctionTypeInternal(clang::QualType, ArrayRef<clang::QualType>, const FunctionProtoType::ExtProtoInfo &, bool) const: Assertion `isCanonical && "given non-canonical parameters constructing canonical type"' failed.
+Scanning dependencies of target Sanitizer-x86_64-Test
+Scanning dependencies of target Sanitizer-i386-Test
+[ 96%] Generating sanitizer_allocator_test.cc.i386.o
+[ 96%] Generating sanitizer_allocator_test.cc.x86_64.o
+#0 0x00000000010a9805 llvm::sys::PrintStackTrace(llvm::raw_ostream&) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x10a9805)
+#1 0x00000000010a9d76 SignalHandler(int) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x10a9d76)
+#2 0x00002b61835f7330 __restore_rt (/lib/x86_64-linux-gnu/libpthread.so.0+0x10330)
+#3 0x00002b61848a9c37 gsignal /build/eglibc-oGUzwX/eglibc-2.19/signal/../nptl/sysdeps/unix/sysv/linux/raise.c:56:0
+#4 0x00002b61848ad028 abort /build/eglibc-oGUzwX/eglibc-2.19/stdlib/abort.c:91:0
+#5 0x00002b61848a2bf6 __assert_fail_base /build/eglibc-oGUzwX/eglibc-2.19/assert/assert.c:92:0
+#6 0x00002b61848a2ca2 (/lib/x86_64-linux-gnu/libc.so.6+0x2fca2)
+#7 0x00000000026253b0 clang::ASTContext::getFunctionTypeInternal(clang::QualType, llvm::ArrayRef<clang::QualType>, clang::FunctionProtoType::ExtProtoInfo const&, bool) const (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x26253b0)
+#8 0x00000000026251cf clang::ASTContext::getFunctionTypeInternal(clang::QualType, llvm::ArrayRef<clang::QualType>, clang::FunctionProtoType::ExtProtoInfo const&, bool) const (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x26251cf)
+#9 0x0000000002336f15 GetFullTypeForDeclarator((anonymous namespace)::TypeProcessingState&, clang::QualType, clang::TypeSourceInfo*) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x2336f15)
+#10 0x0000000002330830 clang::Sema::GetTypeForDeclarator(clang::Declarator&, clang::Scope*) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x2330830)
+#11 0x0000000001f1a331 clang::Sema::HandleDeclarator(clang::Scope*, clang::Declarator&, llvm::MutableArrayRef<clang::TemplateParameterList*>) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1f1a331)
+#12 0x0000000001f19f35 clang::Sema::ActOnDeclarator(clang::Scope*, clang::Declarator&) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1f19f35)
+#13 0x0000000001c6506b clang::Parser::ParseDeclarationAfterDeclaratorAndAttributes(clang::Declarator&, clang::Parser::ParsedTemplateInfo const&, clang::Parser::ForRangeInit*) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c6506b)
+#14 0x0000000001c63f71 clang::Parser::ParseDeclGroup(clang::ParsingDeclSpec&, unsigned int, clang::SourceLocation*, clang::Parser::ForRangeInit*) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c63f71)
+#15 0x0000000001c60297 clang::Parser::ParseSimpleDeclaration(unsigned int, clang::SourceLocation&, clang::Parser::ParsedAttributesWithRange&, bool, clang::Parser::ForRangeInit*) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c60297)
+#16 0x0000000001c5febd clang::Parser::ParseDeclaration(unsigned int, clang::SourceLocation&, clang::Parser::ParsedAttributesWithRange&) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c5febd)
+#17 0x0000000001c4b9d1 clang::Parser::ParseExternalDeclaration(clang::Parser::ParsedAttributesWithRange&, clang::ParsingDeclSpec*) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c4b9d1)
+#18 0x0000000001c76f87 clang::Parser::ParseInnerNamespace(std::vector<clang::SourceLocation, std::allocator<clang::SourceLocation> >&, std::vector<clang::IdentifierInfo*, std::allocator<clang::IdentifierInfo*> >&, std::vector<clang::SourceLocation, std::allocator<clang::SourceLocation> >&, unsigned int, clang::SourceLocation&, clang::ParsedAttributes&, clang::BalancedDelimiterTracker&) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c76f87)
+#19 0x0000000001c767af clang::Parser::ParseNamespace(unsigned int, clang::SourceLocation&, clang::SourceLocation) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c767af)
+#20 0x0000000001c5fdb7 clang::Parser::ParseDeclaration(unsigned int, clang::SourceLocation&, clang::Parser::ParsedAttributesWithRange&) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c5fdb7)
+#21 0x0000000001c4b9d1 clang::Parser::ParseExternalDeclaration(clang::Parser::ParsedAttributesWithRange&, clang::ParsingDeclSpec*) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c4b9d1)
+#22 0x0000000001c4b4e9 clang::Parser::ParseTopLevelDecl(clang::OpaquePtr<clang::DeclGroupRef>&) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c4b4e9)
+#23 0x0000000001c4aefc clang::Parser::ParseFirstTopLevelDecl(clang::OpaquePtr<clang::DeclGroupRef>&) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c4aefc)
+#24 0x0000000001c472d5 clang::ParseAST(clang::Sema&, bool, bool) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c472d5)
+#25 0x0000000001553055 clang::FrontendAction::Execute() (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1553055)
+#26 0x000000000151bf61 clang::CompilerInstance::ExecuteAction(clang::FrontendAction&) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x151bf61)
+#27 0x00000000015cbe86 clang::ExecuteCompilerInvocation(clang::CompilerInstance*) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x15cbe86)
+#28 0x000000000071f70f cc1_main(llvm::ArrayRef<char const*>, char const*, void*) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x71f70f)
+#29 0x000000000071c0bc main (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x71c0bc)
+#30 0x00002b6184894f45 __libc_start_main /build/eglibc-oGUzwX/eglibc-2.19/csu/libc-start.c:321:0
+#31 0x000000000071b312 _start (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x71b312)
+Stack dump:
+0.  Program arguments: /home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0 -cc1 -triple x86_64-unknown-linux-gnu -emit-obj -disable-free -main-file-name sanitizer_nolibc_test_main.cc -mrelocation-model pic -pic-level 2 -mthread-model posix -fmath-errno -masm-verbose -mconstructor-aliases -munwind-tables -fuse-init-array -target-cpu x86-64 -momit-leaf-frame-pointer -dwarf-column-info -debug-info-kind=line-tables-only -dwarf-version=4 -debugger-tuning=gdb -ffunction-sections -fdata-sections -coverage-notes-file /home/jubi/superopt/blockpc-fix/test/build/projects/compiler-rt/lib/sanitizer_common/tests/sanitizer_nolibc_test_main.x86_64.gcno -resource-dir /home/jubi/superopt/blockpc-fix/test/build/bin/../lib/clang/4.0.0 -D GTEST_NO_LLVM_RAW_OSTREAM=1 -D GTEST_HAS_RTTI=0 -I /home/jubi/superopt/blockpc-fix/test/llvm/utils/unittest/googletest/include -I /home/jubi/superopt/blockpc-fix/test/llvm/utils/unittest/googletest -I /home/jubi/superopt/blockpc-fix/test/llvm/projects/compiler-rt/include -I /home/jubi/superopt/blockpc-fix/test/llvm/projects/compiler-rt/lib -I /home/jubi/superopt/blockpc-fix/test/llvm/projects/compiler-rt/lib/sanitizer_common -internal-isystem /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../include/c++/4.8 -internal-isystem /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../include/x86_64-linux-gnu/c++/4.8 -internal-isystem /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../include/x86_64-linux-gnu/c++/4.8 -internal-isystem /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../include/c++/4.8/backward -internal-isystem /usr/local/include -internal-isystem /home/jubi/superopt/blockpc-fix/test/build/bin/../lib/clang/4.0.0/include -internal-externc-isystem /usr/include/x86_64-linux-gnu -internal-externc-isystem /include -internal-externc-isystem /usr/include -O2 -Wall -W -Wno-unused-parameter -Wwrite-strings -Wcast-qual -Wmissing-field-initializers -Wno-long-long -Wcovered-switch-default -Wnon-virtual-dtor -Wdelete-non-virtual-dtor -Werror=date-time -Wall -Wno-unused-parameter -Wno-unknown-warning-option -Werror=sign-compare -Wno-non-virtual-dtor -pedantic -std=c++11 -fdeprecated-macro -fdebug-compilation-dir /home/jubi/superopt/blockpc-fix/test/build/projects/compiler-rt/lib/sanitizer_common/tests -ferror-limit 19 -fmessage-length 128 -fvisibility-inlines-hidden -fno-rtti -fobjc-runtime=gcc -fcxx-exceptions -fexceptions -fdiagnostics-show-option -fcolor-diagnostics -vectorize-loops -vectorize-slp -o sanitizer_nolibc_test_main.x86_64.o -x c++ /home/jubi/superopt/blockpc-fix/test/llvm/projects/compiler-rt/lib/sanitizer_common/tests/sanitizer_nolibc_test_main.cc 
+1.  /home/jubi/superopt/blockpc-fix/test/llvm/projects/compiler-rt/lib/sanitizer_common/sanitizer_internal_defs.h:194:76: current parser token ';'
+2.  /home/jubi/superopt/blockpc-fix/test/llvm/projects/compiler-rt/lib/sanitizer_common/sanitizer_internal_defs.h:58:1: parsing namespace '__sanitizer'
+clang-4.0: error: unable to execute command: Aborted
+clang-4.0: error: clang frontend command failed due to signal (use -v to see invocation)
+clang version 4.0.0 (trunk 284808)
+Target: x86_64-unknown-linux-gnu
+Thread model: posix
+InstalledDir: /home/jubi/superopt/blockpc-fix/test/build/projects/compiler-rt/lib/sanitizer_common/tests/../../../../../bin
+clang-4.0: note: diagnostic msg: PLEASE submit a bug report to http://llvm.org/bugs/ and include the crash backtrace, preprocessed source, and associated run script.
+clang-4.0: /home/jubi/superopt/blockpc-fix/test/llvm/tools/clang/lib/AST/ASTContext.cpp:3218: clang::QualType clang::ASTContext::getFunctionTypeInternal(clang::QualType, ArrayRef<clang::QualType>, const FunctionProtoType::ExtProtoInfo &, bool) const: Assertion `isCanonical && "given non-canonical parameters constructing canonical type"' failed.
+clang-4.0: note: diagnostic msg: 
+********************
+
+PLEASE ATTACH THE FOLLOWING FILES TO THE BUG REPORT:
+Preprocessed source(s) and associated run script(s) are located at:
+clang-4.0: note: diagnostic msg: /tmp/sanitizer_nolibc_test_main-dde94a.cpp
+clang-4.0: note: diagnostic msg: /tmp/sanitizer_nolibc_test_main-dde94a.sh
+clang-4.0: note: diagnostic msg: 
+
+********************
+make[3]: *** [projects/compiler-rt/lib/sanitizer_common/tests/sanitizer_nolibc_test_main.x86_64.o] Error 254
+make[2]: *** [projects/compiler-rt/lib/sanitizer_common/tests/CMakeFiles/Sanitizer-x86_64-Test-Nolibc.dir/all] Error 2
+make[2]: *** Waiting for unfinished jobs....
+[ 96%] Generating sanitizer_atomic_test.cc.x86_64.o
+clang-4.0: /home/jubi/superopt/blockpc-fix/test/llvm/tools/clang/lib/AST/ASTContext.cpp:3218: clang::QualType clang::ASTContext::getFunctionTypeInternal(clang::QualType, ArrayRef<clang::QualType>, const FunctionProtoType::ExtProtoInfo &, bool) const: Assertion `isCanonical && "given non-canonical parameters constructing canonical type"' failed.
+clang-4.0: /home/jubi/superopt/blockpc-fix/test/llvm/tools/clang/lib/AST/ASTContext.cpp:3218: clang::QualType clang::ASTContext::getFunctionTypeInternal(clang::QualType, ArrayRef<clang::QualType>, const FunctionProtoType::ExtProtoInfo &, bool) const: Assertion `isCanonical && "given non-canonical parameters constructing canonical type"' failed.
+#0 0x00000000010a9805 llvm::sys::PrintStackTrace(llvm::raw_ostream&) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x10a9805)
+#1 0x00000000010a9d76 SignalHandler(int) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x10a9d76)
+#2 0x00002b75f8a71330 __restore_rt (/lib/x86_64-linux-gnu/libpthread.so.0+0x10330)
+#3 0x00002b75f9d23c37 gsignal /build/eglibc-oGUzwX/eglibc-2.19/signal/../nptl/sysdeps/unix/sysv/linux/raise.c:56:0
+#4 0x00002b75f9d27028 abort /build/eglibc-oGUzwX/eglibc-2.19/stdlib/abort.c:91:0
+#5 0x00002b75f9d1cbf6 __assert_fail_base /build/eglibc-oGUzwX/eglibc-2.19/assert/assert.c:92:0
+#6 0x00002b75f9d1cca2 (/lib/x86_64-linux-gnu/libc.so.6+0x2fca2)
+#7 0x00000000026253b0 clang::ASTContext::getFunctionTypeInternal(clang::QualType, llvm::ArrayRef<clang::QualType>, clang::FunctionProtoType::ExtProtoInfo const&, bool) const (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x26253b0)
+#8 0x00000000026251cf clang::ASTContext::getFunctionTypeInternal(clang::QualType, llvm::ArrayRef<clang::QualType>, clang::FunctionProtoType::ExtProtoInfo const&, bool) const (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x26251cf)
+#9 0x0000000002336f15 GetFullTypeForDeclarator((anonymous namespace)::TypeProcessingState&, clang::QualType, clang::TypeSourceInfo*) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x2336f15)
+#10 0x0000000002330830 clang::Sema::GetTypeForDeclarator(clang::Declarator&, clang::Scope*) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x2330830)
+#11 0x0000000001f1a331 clang::Sema::HandleDeclarator(clang::Scope*, clang::Declarator&, llvm::MutableArrayRef<clang::TemplateParameterList*>) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1f1a331)
+#12 0x0000000001f19f35 clang::Sema::ActOnDeclarator(clang::Scope*, clang::Declarator&) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1f19f35)
+#13 0x0000000001c6506b clang::Parser::ParseDeclarationAfterDeclaratorAndAttributes(clang::Declarator&, clang::Parser::ParsedTemplateInfo const&, clang::Parser::ForRangeInit*) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c6506b)
+#14 0x0000000001c63f71 clang::Parser::ParseDeclGroup(clang::ParsingDeclSpec&, unsigned int, clang::SourceLocation*, clang::Parser::ForRangeInit*) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c63f71)
+#15 0x0000000001c60297 clang::Parser::ParseSimpleDeclaration(unsigned int, clang::SourceLocation&, clang::Parser::ParsedAttributesWithRange&, bool, clang::Parser::ForRangeInit*) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c60297)
+#16 0x0000000001c5febd clang::Parser::ParseDeclaration(unsigned int, clang::SourceLocation&, clang::Parser::ParsedAttributesWithRange&) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c5febd)
+#17 0x0000000001c4b9d1 clang::Parser::ParseExternalDeclaration(clang::Parser::ParsedAttributesWithRange&, clang::ParsingDeclSpec*) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c4b9d1)
+#18 0x0000000001c76f87 clang::Parser::ParseInnerNamespace(std::vector<clang::SourceLocation, std::allocator<clang::SourceLocation> >&, std::vector<clang::IdentifierInfo*, std::allocator<clang::IdentifierInfo*> >&, std::vector<clang::SourceLocation, std::allocator<clang::SourceLocation> >&, unsigned int, clang::SourceLocation&, clang::ParsedAttributes&, clang::BalancedDelimiterTracker&) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c76f87)
+#19 0x0000000001c767af clang::Parser::ParseNamespace(unsigned int, clang::SourceLocation&, clang::SourceLocation) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c767af)
+#20 0x0000000001c5fdb7 clang::Parser::ParseDeclaration(unsigned int, clang::SourceLocation&, clang::Parser::ParsedAttributesWithRange&) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c5fdb7)
+#21 0x0000000001c4b9d1 clang::Parser::ParseExternalDeclaration(clang::Parser::ParsedAttributesWithRange&, clang::ParsingDeclSpec*) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c4b9d1)
+#22 0x0000000001c4b4e9 clang::Parser::ParseTopLevelDecl(clang::OpaquePtr<clang::DeclGroupRef>&) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c4b4e9)
+#23 0x0000000001c4aefc clang::Parser::ParseFirstTopLevelDecl(clang::OpaquePtr<clang::DeclGroupRef>&) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c4aefc)
+#24 0x0000000001c472d5 clang::ParseAST(clang::Sema&, bool, bool) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c472d5)
+#25 0x0000000001553055 clang::FrontendAction::Execute() (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1553055)
+#26 0x000000000151bf61 clang::CompilerInstance::ExecuteAction(clang::FrontendAction&) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x151bf61)
+#27 0x00000000015cbe86 clang::ExecuteCompilerInvocation(clang::CompilerInstance*) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x15cbe86)
+#28 0x000000000071f70f cc1_main(llvm::ArrayRef<char const*>, char const*, void*) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x71f70f)
+#29 0x000000000071c0bc main (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x71c0bc)
+#30 0x00002b75f9d0ef45 __libc_start_main /build/eglibc-oGUzwX/eglibc-2.19/csu/libc-start.c:321:0
+#31 0x000000000071b312 _start (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x71b312)
+Stack dump:
+0.  Program arguments: /home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0 -cc1 -triple x86_64-unknown-linux-gnu -emit-obj -disable-free -main-file-name sanitizer_allocator_test.cc -mrelocation-model pic -pic-level 2 -mthread-model posix -fmath-errno -masm-verbose -mconstructor-aliases -munwind-tables -fuse-init-array -target-cpu x86-64 -momit-leaf-frame-pointer -dwarf-column-info -debug-info-kind=line-tables-only -dwarf-version=4 -debugger-tuning=gdb -ffunction-sections -fdata-sections -coverage-notes-file /home/jubi/superopt/blockpc-fix/test/build/projects/compiler-rt/lib/sanitizer_common/tests/sanitizer_allocator_test.cc.x86_64.gcno -resource-dir /home/jubi/superopt/blockpc-fix/test/build/bin/../lib/clang/4.0.0 -D GTEST_NO_LLVM_RAW_OSTREAM=1 -D GTEST_HAS_RTTI=0 -I /home/jubi/superopt/blockpc-fix/test/llvm/utils/unittest/googletest/include -I /home/jubi/superopt/blockpc-fix/test/llvm/utils/unittest/googletest -I /home/jubi/superopt/blockpc-fix/test/llvm/projects/compiler-rt/include -I /home/jubi/superopt/blockpc-fix/test/llvm/projects/compiler-rt/lib -I /home/jubi/superopt/blockpc-fix/test/llvm/projects/compiler-rt/lib/sanitizer_common -internal-isystem /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../include/c++/4.8 -internal-isystem /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../include/x86_64-linux-gnu/c++/4.8 -internal-isystem /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../include/x86_64-linux-gnu/c++/4.8 -internal-isystem /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../include/c++/4.8/backward -internal-isystem /usr/local/include -internal-isystem /home/jubi/superopt/blockpc-fix/test/build/bin/../lib/clang/4.0.0/include -internal-externc-isystem /usr/include/x86_64-linux-gnu -internal-externc-isystem /include -internal-externc-isystem /usr/include -O2 -Wall -W -Wno-unused-parameter -Wwrite-strings -Wcast-qual -Wmissing-field-initializers -Wno-long-long -Wcovered-switch-default -Wnon-virtual-dtor -Wdelete-non-virtual-dtor -Werror=date-time -Wall -Wno-unused-parameter -Wno-unknown-warning-option -Werror=sign-compare -Wno-non-virtual-dtor -pedantic -std=c++11 -fdeprecated-macro -fdebug-compilation-dir /home/jubi/superopt/blockpc-fix/test/build/projects/compiler-rt/lib/sanitizer_common/tests -ferror-limit 19 -fmessage-length 128 -fvisibility-inlines-hidden -fno-rtti -fobjc-runtime=gcc -fcxx-exceptions -fexceptions -fdiagnostics-show-option -fcolor-diagnostics -vectorize-loops -vectorize-slp -o sanitizer_allocator_test.cc.x86_64.o -x c++ /home/jubi/superopt/blockpc-fix/test/llvm/projects/compiler-rt/lib/sanitizer_common/tests/sanitizer_allocator_test.cc 
+1.  /home/jubi/superopt/blockpc-fix/test/llvm/projects/compiler-rt/lib/sanitizer_common/sanitizer_internal_defs.h:194:76: current parser token ';'
+2.  /home/jubi/superopt/blockpc-fix/test/llvm/projects/compiler-rt/lib/sanitizer_common/sanitizer_internal_defs.h:58:1: parsing namespace '__sanitizer'
+clang-4.0: error: unable to execute command: Aborted
+clang-4.0: error: clang frontend command failed due to signal (use -v to see invocation)
+clang version 4.0.0 (trunk 284808)
+Target: x86_64-unknown-linux-gnu
+Thread model: posix
+InstalledDir: /home/jubi/superopt/blockpc-fix/test/build/projects/compiler-rt/lib/sanitizer_common/tests/../../../../../bin
+clang-4.0: note: diagnostic msg: PLEASE submit a bug report to http://llvm.org/bugs/ and include the crash backtrace, preprocessed source, and associated run script.
+#0 0x00000000010a9805 llvm::sys::PrintStackTrace(llvm::raw_ostream&) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x10a9805)
+#1 0x00000000010a9d76 SignalHandler(int) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x10a9d76)
+#2 0x00002b3f4371f330 __restore_rt (/lib/x86_64-linux-gnu/libpthread.so.0+0x10330)
+#3 0x00002b3f449d1c37 gsignal /build/eglibc-oGUzwX/eglibc-2.19/signal/../nptl/sysdeps/unix/sysv/linux/raise.c:56:0
+#4 0x00002b3f449d5028 abort /build/eglibc-oGUzwX/eglibc-2.19/stdlib/abort.c:91:0
+#5 0x00002b3f449cabf6 __assert_fail_base /build/eglibc-oGUzwX/eglibc-2.19/assert/assert.c:92:0
+#6 0x00002b3f449caca2 (/lib/x86_64-linux-gnu/libc.so.6+0x2fca2)
+#7 0x00000000026253b0 clang::ASTContext::getFunctionTypeInternal(clang::QualType, llvm::ArrayRef<clang::QualType>, clang::FunctionProtoType::ExtProtoInfo const&, bool) const (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x26253b0)
+#8 0x00000000026251cf clang::ASTContext::getFunctionTypeInternal(clang::QualType, llvm::ArrayRef<clang::QualType>, clang::FunctionProtoType::ExtProtoInfo const&, bool) const (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x26251cf)
+#9 0x0000000002336f15 GetFullTypeForDeclarator((anonymous namespace)::TypeProcessingState&, clang::QualType, clang::TypeSourceInfo*) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x2336f15)
+#10 0x0000000002330830 clang::Sema::GetTypeForDeclarator(clang::Declarator&, clang::Scope*) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x2330830)
+#11 0x0000000001f1a331 clang::Sema::HandleDeclarator(clang::Scope*, clang::Declarator&, llvm::MutableArrayRef<clang::TemplateParameterList*>) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1f1a331)
+#12 0x0000000001f19f35 clang::Sema::ActOnDeclarator(clang::Scope*, clang::Declarator&) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1f19f35)
+#13 0x0000000001c6506b clang::Parser::ParseDeclarationAfterDeclaratorAndAttributes(clang::Declarator&, clang::Parser::ParsedTemplateInfo const&, clang::Parser::ForRangeInit*) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c6506b)
+#14 0x0000000001c63f71 clang::Parser::ParseDeclGroup(clang::ParsingDeclSpec&, unsigned int, clang::SourceLocation*, clang::Parser::ForRangeInit*) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c63f71)
+#15 0x0000000001c60297 clang::Parser::ParseSimpleDeclaration(unsigned int, clang::SourceLocation&, clang::Parser::ParsedAttributesWithRange&, bool, clang::Parser::ForRangeInit*) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c60297)
+#16 0x0000000001c5febd clang::Parser::ParseDeclaration(unsigned int, clang::SourceLocation&, clang::Parser::ParsedAttributesWithRange&) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c5febd)
+#17 0x0000000001c4b9d1 clang::Parser::ParseExternalDeclaration(clang::Parser::ParsedAttributesWithRange&, clang::ParsingDeclSpec*) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c4b9d1)
+#18 0x0000000001c76f87 clang::Parser::ParseInnerNamespace(std::vector<clang::SourceLocation, std::allocator<clang::SourceLocation> >&, std::vector<clang::IdentifierInfo*, std::allocator<clang::IdentifierInfo*> >&, std::vector<clang::SourceLocation, std::allocator<clang::SourceLocation> >&, unsigned int, clang::SourceLocation&, clang::ParsedAttributes&, clang::BalancedDelimiterTracker&) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c76f87)
+#19 0x0000000001c767af clang::Parser::ParseNamespace(unsigned int, clang::SourceLocation&, clang::SourceLocation) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c767af)
+#20 0x0000000001c5fdb7 clang::Parser::ParseDeclaration(unsigned int, clang::SourceLocation&, clang::Parser::ParsedAttributesWithRange&) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c5fdb7)
+#21 0x0000000001c4b9d1 clang::Parser::ParseExternalDeclaration(clang::Parser::ParsedAttributesWithRange&, clang::ParsingDeclSpec*) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c4b9d1)
+#22 0x0000000001c4b4e9 clang::Parser::ParseTopLevelDecl(clang::OpaquePtr<clang::DeclGroupRef>&) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c4b4e9)
+#23 0x0000000001c4aefc clang::Parser::ParseFirstTopLevelDecl(clang::OpaquePtr<clang::DeclGroupRef>&) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c4aefc)
+#24 0x0000000001c472d5 clang::ParseAST(clang::Sema&, bool, bool) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c472d5)
+#25 0x0000000001553055 clang::FrontendAction::Execute() (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1553055)
+#26 0x000000000151bf61 clang::CompilerInstance::ExecuteAction(clang::FrontendAction&) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x151bf61)
+#27 0x00000000015cbe86 clang::ExecuteCompilerInvocation(clang::CompilerInstance*) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x15cbe86)
+#28 0x000000000071f70f cc1_main(llvm::ArrayRef<char const*>, char const*, void*) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x71f70f)
+#29 0x000000000071c0bc main (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x71c0bc)
+#30 0x00002b3f449bcf45 __libc_start_main /build/eglibc-oGUzwX/eglibc-2.19/csu/libc-start.c:321:0
+#31 0x000000000071b312 _start (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x71b312)
+Stack dump:
+0.  Program arguments: /home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0 -cc1 -triple i386-unknown-linux-gnu -emit-obj -disable-free -main-file-name sanitizer_allocator_test.cc -mrelocation-model pic -pic-level 2 -mthread-model posix -fmath-errno -masm-verbose -mconstructor-aliases -fuse-init-array -target-cpu pentium4 -momit-leaf-frame-pointer -dwarf-column-info -debug-info-kind=line-tables-only -dwarf-version=4 -debugger-tuning=gdb -ffunction-sections -fdata-sections -coverage-notes-file /home/jubi/superopt/blockpc-fix/test/build/projects/compiler-rt/lib/sanitizer_common/tests/sanitizer_allocator_test.cc.i386.gcno -resource-dir /home/jubi/superopt/blockpc-fix/test/build/bin/../lib/clang/4.0.0 -D GTEST_NO_LLVM_RAW_OSTREAM=1 -D GTEST_HAS_RTTI=0 -I /home/jubi/superopt/blockpc-fix/test/llvm/utils/unittest/googletest/include -I /home/jubi/superopt/blockpc-fix/test/llvm/utils/unittest/googletest -I /home/jubi/superopt/blockpc-fix/test/llvm/projects/compiler-rt/include -I /home/jubi/superopt/blockpc-fix/test/llvm/projects/compiler-rt/lib -I /home/jubi/superopt/blockpc-fix/test/llvm/projects/compiler-rt/lib/sanitizer_common -internal-isystem /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../include/c++/4.8 -internal-isystem /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../include/x86_64-linux-gnu/c++/4.8/32 -internal-isystem /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../include/i386-linux-gnu/c++/4.8 -internal-isystem /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../include/c++/4.8/backward -internal-isystem /usr/local/include -internal-isystem /home/jubi/superopt/blockpc-fix/test/build/bin/../lib/clang/4.0.0/include -internal-externc-isystem /include -internal-externc-isystem /usr/include -O2 -Wall -W -Wno-unused-parameter -Wwrite-strings -Wcast-qual -Wmissing-field-initializers -Wno-long-long -Wcovered-switch-default -Wnon-virtual-dtor -Wdelete-non-virtual-dtor -Werror=date-time -Wall -Wno-unused-parameter -Wno-unknown-warning-option -Werror=sign-compare -Wno-non-virtual-dtor -pedantic -std=c++11 -fdeprecated-macro -fdebug-compilation-dir /home/jubi/superopt/blockpc-fix/test/build/projects/compiler-rt/lib/sanitizer_common/tests -ferror-limit 19 -fmessage-length 128 -fvisibility-inlines-hidden -fno-rtti -fobjc-runtime=gcc -fcxx-exceptions -fexceptions -fdiagnostics-show-option -fcolor-diagnostics -vectorize-loops -vectorize-slp -o sanitizer_allocator_test.cc.i386.o -x c++ /home/jubi/superopt/blockpc-fix/test/llvm/projects/compiler-rt/lib/sanitizer_common/tests/sanitizer_allocator_test.cc 
+1.  /home/jubi/superopt/blockpc-fix/test/llvm/projects/compiler-rt/lib/sanitizer_common/sanitizer_internal_defs.h:194:76: current parser token ';'
+2.  /home/jubi/superopt/blockpc-fix/test/llvm/projects/compiler-rt/lib/sanitizer_common/sanitizer_internal_defs.h:58:1: parsing namespace '__sanitizer'
+clang-4.0: error: unable to execute command: Aborted
+clang-4.0: error: clang frontend command failed due to signal (use -v to see invocation)
+clang version 4.0.0 (trunk 284808)
+Target: i386-unknown-linux-gnu
+Thread model: posix
+InstalledDir: /home/jubi/superopt/blockpc-fix/test/build/projects/compiler-rt/lib/sanitizer_common/tests/../../../../../bin
+clang-4.0: note: diagnostic msg: PLEASE submit a bug report to http://llvm.org/bugs/ and include the crash backtrace, preprocessed source, and associated run script.
+#0 0x00000000010a9805 llvm::sys::PrintStackTrace(llvm::raw_ostream&) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x10a9805)
+#1 0x00000000010a9d76 SignalHandler(int) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x10a9d76)
+#2 0x00002b20d3b0c330 __restore_rt (/lib/x86_64-linux-gnu/libpthread.so.0+0x10330)
+#3 0x00002b20d4dbec37 gsignal /build/eglibc-oGUzwX/eglibc-2.19/signal/../nptl/sysdeps/unix/sysv/linux/raise.c:56:0
+#4 0x00002b20d4dc2028 abort /build/eglibc-oGUzwX/eglibc-2.19/stdlib/abort.c:91:0
+#5 0x00002b20d4db7bf6 __assert_fail_base /build/eglibc-oGUzwX/eglibc-2.19/assert/assert.c:92:0
+#6 0x00002b20d4db7ca2 (/lib/x86_64-linux-gnu/libc.so.6+0x2fca2)
+#7 0x00000000026253b0 clang::ASTContext::getFunctionTypeInternal(clang::QualType, llvm::ArrayRef<clang::QualType>, clang::FunctionProtoType::ExtProtoInfo const&, bool) const (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x26253b0)
+#8 0x00000000026251cf clang::ASTContext::getFunctionTypeInternal(clang::QualType, llvm::ArrayRef<clang::QualType>, clang::FunctionProtoType::ExtProtoInfo const&, bool) const (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x26251cf)
+#9 0x0000000002336f15 GetFullTypeForDeclarator((anonymous namespace)::TypeProcessingState&, clang::QualType, clang::TypeSourceInfo*) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x2336f15)
+#10 0x0000000002330830 clang::Sema::GetTypeForDeclarator(clang::Declarator&, clang::Scope*) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x2330830)
+#11 0x0000000001f1a331 clang::Sema::HandleDeclarator(clang::Scope*, clang::Declarator&, llvm::MutableArrayRef<clang::TemplateParameterList*>) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1f1a331)
+#12 0x0000000001f19f35 clang::Sema::ActOnDeclarator(clang::Scope*, clang::Declarator&) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1f19f35)
+#13 0x0000000001c6506b clang::Parser::ParseDeclarationAfterDeclaratorAndAttributes(clang::Declarator&, clang::Parser::ParsedTemplateInfo const&, clang::Parser::ForRangeInit*) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c6506b)
+#14 0x0000000001c63f71 clang::Parser::ParseDeclGroup(clang::ParsingDeclSpec&, unsigned int, clang::SourceLocation*, clang::Parser::ForRangeInit*) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c63f71)
+#15 0x0000000001c60297 clang::Parser::ParseSimpleDeclaration(unsigned int, clang::SourceLocation&, clang::Parser::ParsedAttributesWithRange&, bool, clang::Parser::ForRangeInit*) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c60297)
+#16 0x0000000001c5febd clang::Parser::ParseDeclaration(unsigned int, clang::SourceLocation&, clang::Parser::ParsedAttributesWithRange&) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c5febd)
+#17 0x0000000001c4b9d1 clang::Parser::ParseExternalDeclaration(clang::Parser::ParsedAttributesWithRange&, clang::ParsingDeclSpec*) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c4b9d1)
+#18 0x0000000001c76f87 clang::Parser::ParseInnerNamespace(std::vector<clang::SourceLocation, std::allocator<clang::SourceLocation> >&, std::vector<clang::IdentifierInfo*, std::allocator<clang::IdentifierInfo*> >&, std::vector<clang::SourceLocation, std::allocator<clang::SourceLocation> >&, unsigned int, clang::SourceLocation&, clang::ParsedAttributes&, clang::BalancedDelimiterTracker&) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c76f87)
+#19 0x0000000001c767af clang::Parser::ParseNamespace(unsigned int, clang::SourceLocation&, clang::SourceLocation) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c767af)
+#20 0x0000000001c5fdb7 clang::Parser::ParseDeclaration(unsigned int, clang::SourceLocation&, clang::Parser::ParsedAttributesWithRange&) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c5fdb7)
+#21 0x0000000001c4b9d1 clang::Parser::ParseExternalDeclaration(clang::Parser::ParsedAttributesWithRange&, clang::ParsingDeclSpec*) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c4b9d1)
+#22 0x0000000001c4b4e9 clang::Parser::ParseTopLevelDecl(clang::OpaquePtr<clang::DeclGroupRef>&) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c4b4e9)
+#23 0x0000000001c4aefc clang::Parser::ParseFirstTopLevelDecl(clang::OpaquePtr<clang::DeclGroupRef>&) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c4aefc)
+#24 0x0000000001c472d5 clang::ParseAST(clang::Sema&, bool, bool) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c472d5)
+#25 0x0000000001553055 clang::FrontendAction::Execute() (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1553055)
+#26 0x000000000151bf61 clang::CompilerInstance::ExecuteAction(clang::FrontendAction&) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x151bf61)
+#27 0x00000000015cbe86 clang::ExecuteCompilerInvocation(clang::CompilerInstance*) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x15cbe86)
+#28 0x000000000071f70f cc1_main(llvm::ArrayRef<char const*>, char const*, void*) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x71f70f)
+#29 0x000000000071c0bc main (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x71c0bc)
+#30 0x00002b20d4da9f45 __libc_start_main /build/eglibc-oGUzwX/eglibc-2.19/csu/libc-start.c:321:0
+#31 0x000000000071b312 _start (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x71b312)
+Stack dump:
+0.  Program arguments: /home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0 -cc1 -triple x86_64-unknown-linux-gnu -emit-obj -disable-free -main-file-name sanitizer_atomic_test.cc -mrelocation-model pic -pic-level 2 -mthread-model posix -fmath-errno -masm-verbose -mconstructor-aliases -munwind-tables -fuse-init-array -target-cpu x86-64 -momit-leaf-frame-pointer -dwarf-column-info -debug-info-kind=line-tables-only -dwarf-version=4 -debugger-tuning=gdb -ffunction-sections -fdata-sections -coverage-notes-file /home/jubi/superopt/blockpc-fix/test/build/projects/compiler-rt/lib/sanitizer_common/tests/sanitizer_atomic_test.cc.x86_64.gcno -resource-dir /home/jubi/superopt/blockpc-fix/test/build/bin/../lib/clang/4.0.0 -D GTEST_NO_LLVM_RAW_OSTREAM=1 -D GTEST_HAS_RTTI=0 -I /home/jubi/superopt/blockpc-fix/test/llvm/utils/unittest/googletest/include -I /home/jubi/superopt/blockpc-fix/test/llvm/utils/unittest/googletest -I /home/jubi/superopt/blockpc-fix/test/llvm/projects/compiler-rt/include -I /home/jubi/superopt/blockpc-fix/test/llvm/projects/compiler-rt/lib -I /home/jubi/superopt/blockpc-fix/test/llvm/projects/compiler-rt/lib/sanitizer_common -internal-isystem /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../include/c++/4.8 -internal-isystem /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../include/x86_64-linux-gnu/c++/4.8 -internal-isystem /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../include/x86_64-linux-gnu/c++/4.8 -internal-isystem /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../include/c++/4.8/backward -internal-isystem /usr/local/include -internal-isystem /home/jubi/superopt/blockpc-fix/test/build/bin/../lib/clang/4.0.0/include -internal-externc-isystem /usr/include/x86_64-linux-gnu -internal-externc-isystem /include -internal-externc-isystem /usr/include -O2 -Wall -W -Wno-unused-parameter -Wwrite-strings -Wcast-qual -Wmissing-field-initializers -Wno-long-long -Wcovered-switch-default -Wnon-virtual-dtor -Wdelete-non-virtual-dtor -Werror=date-time -Wall -Wno-unused-parameter -Wno-unknown-warning-option -Werror=sign-compare -Wno-non-virtual-dtor -pedantic -std=c++11 -fdeprecated-macro -fdebug-compilation-dir /home/jubi/superopt/blockpc-fix/test/build/projects/compiler-rt/lib/sanitizer_common/tests -ferror-limit 19 -fmessage-length 128 -fvisibility-inlines-hidden -fno-rtti -fobjc-runtime=gcc -fcxx-exceptions -fexceptions -fdiagnostics-show-option -fcolor-diagnostics -vectorize-loops -vectorize-slp -o sanitizer_atomic_test.cc.x86_64.o -x c++ /home/jubi/superopt/blockpc-fix/test/llvm/projects/compiler-rt/lib/sanitizer_common/tests/sanitizer_atomic_test.cc 
+1.  /home/jubi/superopt/blockpc-fix/test/llvm/projects/compiler-rt/lib/sanitizer_common/sanitizer_internal_defs.h:194:76: current parser token ';'
+2.  /home/jubi/superopt/blockpc-fix/test/llvm/projects/compiler-rt/lib/sanitizer_common/sanitizer_internal_defs.h:58:1: parsing namespace '__sanitizer'
+clang-4.0: error: unable to execute command: Aborted
+clang-4.0: error: clang frontend command failed due to signal (use -v to see invocation)
+clang version 4.0.0 (trunk 284808)
+Target: x86_64-unknown-linux-gnu
+Thread model: posix
+InstalledDir: /home/jubi/superopt/blockpc-fix/test/build/projects/compiler-rt/lib/sanitizer_common/tests/../../../../../bin
+clang-4.0: note: diagnostic msg: PLEASE submit a bug report to http://llvm.org/bugs/ and include the crash backtrace, preprocessed source, and associated run script.
+clang-4.0: note: diagnostic msg: 
+********************
+
+PLEASE ATTACH THE FOLLOWING FILES TO THE BUG REPORT:
+Preprocessed source(s) and associated run script(s) are located at:
+clang-4.0: note: diagnostic msg: /tmp/sanitizer_allocator_test-9243eb.cpp
+clang-4.0: note: diagnostic msg: /tmp/sanitizer_allocator_test-9243eb.sh
+clang-4.0: note: diagnostic msg: 
+
+********************
+make[3]: *** [projects/compiler-rt/lib/sanitizer_common/tests/sanitizer_allocator_test.cc.x86_64.o] Error 254
+make[3]: *** Waiting for unfinished jobs....
+[ 96%] Generating sanitizer_atomic_test.cc.i386.o
+clang-4.0: note: diagnostic msg: 
+********************
+
+PLEASE ATTACH THE FOLLOWING FILES TO THE BUG REPORT:
+Preprocessed source(s) and associated run script(s) are located at:
+clang-4.0: note: diagnostic msg: /tmp/sanitizer_atomic_test-88f024.cpp
+clang-4.0: note: diagnostic msg: /tmp/sanitizer_atomic_test-88f024.sh
+clang-4.0: note: diagnostic msg: 
+
+********************
+make[3]: *** [projects/compiler-rt/lib/sanitizer_common/tests/sanitizer_atomic_test.cc.x86_64.o] Error 254
+make[2]: *** [projects/compiler-rt/lib/sanitizer_common/tests/CMakeFiles/Sanitizer-x86_64-Test.dir/all] Error 2
+clang-4.0: /home/jubi/superopt/blockpc-fix/test/llvm/tools/clang/lib/AST/ASTContext.cpp:3218: clang::QualType clang::ASTContext::getFunctionTypeInternal(clang::QualType, ArrayRef<clang::QualType>, const FunctionProtoType::ExtProtoInfo &, bool) const: Assertion `isCanonical && "given non-canonical parameters constructing canonical type"' failed.
+[ 96%] Generating sanitizer_bitvector_test.cc.i386.o
+clang-4.0: /home/jubi/superopt/blockpc-fix/test/llvm/tools/clang/lib/AST/ASTContext.cpp:3218: clang::QualType clang::ASTContext::getFunctionTypeInternal(clang::QualType, ArrayRef<clang::QualType>, const FunctionProtoType::ExtProtoInfo &, bool) const: Assertion `isCanonical && "given non-canonical parameters constructing canonical type"' failed.
+clang-4.0: note: diagnostic msg: 
+********************
+
+PLEASE ATTACH THE FOLLOWING FILES TO THE BUG REPORT:
+Preprocessed source(s) and associated run script(s) are located at:
+clang-4.0: note: diagnostic msg: /tmp/sanitizer_allocator_test-826197.cpp
+clang-4.0: note: diagnostic msg: /tmp/sanitizer_allocator_test-826197.sh
+clang-4.0: note: diagnostic msg: 
+
+********************
+make[3]: *** [projects/compiler-rt/lib/sanitizer_common/tests/sanitizer_allocator_test.cc.i386.o] Error 254
+make[3]: *** Waiting for unfinished jobs....
+#0 0x00000000010a9805 llvm::sys::PrintStackTrace(llvm::raw_ostream&) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x10a9805)
+#1 0x00000000010a9d76 SignalHandler(int) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x10a9d76)
+#2 0x00002b868d5f2330 __restore_rt (/lib/x86_64-linux-gnu/libpthread.so.0+0x10330)
+#3 0x00002b868e8a4c37 gsignal /build/eglibc-oGUzwX/eglibc-2.19/signal/../nptl/sysdeps/unix/sysv/linux/raise.c:56:0
+#4 0x00002b868e8a8028 abort /build/eglibc-oGUzwX/eglibc-2.19/stdlib/abort.c:91:0
+#5 0x00002b868e89dbf6 __assert_fail_base /build/eglibc-oGUzwX/eglibc-2.19/assert/assert.c:92:0
+#6 0x00002b868e89dca2 (/lib/x86_64-linux-gnu/libc.so.6+0x2fca2)
+#7 0x00000000026253b0 clang::ASTContext::getFunctionTypeInternal(clang::QualType, llvm::ArrayRef<clang::QualType>, clang::FunctionProtoType::ExtProtoInfo const&, bool) const (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x26253b0)
+#8 0x00000000026251cf clang::ASTContext::getFunctionTypeInternal(clang::QualType, llvm::ArrayRef<clang::QualType>, clang::FunctionProtoType::ExtProtoInfo const&, bool) const (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x26251cf)
+#9 0x0000000002336f15 GetFullTypeForDeclarator((anonymous namespace)::TypeProcessingState&, clang::QualType, clang::TypeSourceInfo*) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x2336f15)
+#10 0x0000000002330830 clang::Sema::GetTypeForDeclarator(clang::Declarator&, clang::Scope*) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x2330830)
+#11 0x0000000001f1a331 clang::Sema::HandleDeclarator(clang::Scope*, clang::Declarator&, llvm::MutableArrayRef<clang::TemplateParameterList*>) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1f1a331)
+#12 0x0000000001f19f35 clang::Sema::ActOnDeclarator(clang::Scope*, clang::Declarator&) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1f19f35)
+#13 0x0000000001c6506b clang::Parser::ParseDeclarationAfterDeclaratorAndAttributes(clang::Declarator&, clang::Parser::ParsedTemplateInfo const&, clang::Parser::ForRangeInit*) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c6506b)
+#14 0x0000000001c63f71 clang::Parser::ParseDeclGroup(clang::ParsingDeclSpec&, unsigned int, clang::SourceLocation*, clang::Parser::ForRangeInit*) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c63f71)
+#15 0x0000000001c60297 clang::Parser::ParseSimpleDeclaration(unsigned int, clang::SourceLocation&, clang::Parser::ParsedAttributesWithRange&, bool, clang::Parser::ForRangeInit*) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c60297)
+#16 0x0000000001c5febd clang::Parser::ParseDeclaration(unsigned int, clang::SourceLocation&, clang::Parser::ParsedAttributesWithRange&) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c5febd)
+#17 0x0000000001c4b9d1 clang::Parser::ParseExternalDeclaration(clang::Parser::ParsedAttributesWithRange&, clang::ParsingDeclSpec*) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c4b9d1)
+#18 0x0000000001c76f87 clang::Parser::ParseInnerNamespace(std::vector<clang::SourceLocation, std::allocator<clang::SourceLocation> >&, std::vector<clang::IdentifierInfo*, std::allocator<clang::IdentifierInfo*> >&, std::vector<clang::SourceLocation, std::allocator<clang::SourceLocation> >&, unsigned int, clang::SourceLocation&, clang::ParsedAttributes&, clang::BalancedDelimiterTracker&) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c76f87)
+#19 0x0000000001c767af clang::Parser::ParseNamespace(unsigned int, clang::SourceLocation&, clang::SourceLocation) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c767af)
+#20 0x0000000001c5fdb7 clang::Parser::ParseDeclaration(unsigned int, clang::SourceLocation&, clang::Parser::ParsedAttributesWithRange&) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c5fdb7)
+#21 0x0000000001c4b9d1 clang::Parser::ParseExternalDeclaration(clang::Parser::ParsedAttributesWithRange&, clang::ParsingDeclSpec*) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c4b9d1)
+#22 0x0000000001c4b4e9 clang::Parser::ParseTopLevelDecl(clang::OpaquePtr<clang::DeclGroupRef>&) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c4b4e9)
+#23 0x0000000001c4aefc clang::Parser::ParseFirstTopLevelDecl(clang::OpaquePtr<clang::DeclGroupRef>&) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c4aefc)
+#24 0x0000000001c472d5 clang::ParseAST(clang::Sema&, bool, bool) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c472d5)
+#25 0x0000000001553055 clang::FrontendAction::Execute() (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1553055)
+#26 0x000000000151bf61 clang::CompilerInstance::ExecuteAction(clang::FrontendAction&) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x151bf61)
+#27 0x00000000015cbe86 clang::ExecuteCompilerInvocation(clang::CompilerInstance*) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x15cbe86)
+#28 0x000000000071f70f cc1_main(llvm::ArrayRef<char const*>, char const*, void*) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x71f70f)
+#29 0x000000000071c0bc main (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x71c0bc)
+#30 0x00002b868e88ff45 __libc_start_main /build/eglibc-oGUzwX/eglibc-2.19/csu/libc-start.c:321:0
+#31 0x000000000071b312 _start (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x71b312)
+Stack dump:
+0.  Program arguments: /home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0 -cc1 -triple i386-unknown-linux-gnu -emit-obj -disable-free -main-file-name sanitizer_atomic_test.cc -mrelocation-model pic -pic-level 2 -mthread-model posix -fmath-errno -masm-verbose -mconstructor-aliases -fuse-init-array -target-cpu pentium4 -momit-leaf-frame-pointer -dwarf-column-info -debug-info-kind=line-tables-only -dwarf-version=4 -debugger-tuning=gdb -ffunction-sections -fdata-sections -coverage-notes-file /home/jubi/superopt/blockpc-fix/test/build/projects/compiler-rt/lib/sanitizer_common/tests/sanitizer_atomic_test.cc.i386.gcno -resource-dir /home/jubi/superopt/blockpc-fix/test/build/bin/../lib/clang/4.0.0 -D GTEST_NO_LLVM_RAW_OSTREAM=1 -D GTEST_HAS_RTTI=0 -I /home/jubi/superopt/blockpc-fix/test/llvm/utils/unittest/googletest/include -I /home/jubi/superopt/blockpc-fix/test/llvm/utils/unittest/googletest -I /home/jubi/superopt/blockpc-fix/test/llvm/projects/compiler-rt/include -I /home/jubi/superopt/blockpc-fix/test/llvm/projects/compiler-rt/lib -I /home/jubi/superopt/blockpc-fix/test/llvm/projects/compiler-rt/lib/sanitizer_common -internal-isystem /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../include/c++/4.8 -internal-isystem /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../include/x86_64-linux-gnu/c++/4.8/32 -internal-isystem /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../include/i386-linux-gnu/c++/4.8 -internal-isystem /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../include/c++/4.8/backward -internal-isystem /usr/local/include -internal-isystem /home/jubi/superopt/blockpc-fix/test/build/bin/../lib/clang/4.0.0/include -internal-externc-isystem /include -internal-externc-isystem /usr/include -O2 -Wall -W -Wno-unused-parameter -Wwrite-strings -Wcast-qual -Wmissing-field-initializers -Wno-long-long -Wcovered-switch-default -Wnon-virtual-dtor -Wdelete-non-virtual-dtor -Werror=date-time -Wall -Wno-unused-parameter -Wno-unknown-warning-option -Werror=sign-compare -Wno-non-virtual-dtor -pedantic -std=c++11 -fdeprecated-macro -fdebug-compilation-dir /home/jubi/superopt/blockpc-fix/test/build/projects/compiler-rt/lib/sanitizer_common/tests -ferror-limit 19 -fmessage-length 128 -fvisibility-inlines-hidden -fno-rtti -fobjc-runtime=gcc -fcxx-exceptions -fexceptions -fdiagnostics-show-option -fcolor-diagnostics -vectorize-loops -vectorize-slp -o sanitizer_atomic_test.cc.i386.o -x c++ /home/jubi/superopt/blockpc-fix/test/llvm/projects/compiler-rt/lib/sanitizer_common/tests/sanitizer_atomic_test.cc 
+1.  /home/jubi/superopt/blockpc-fix/test/llvm/projects/compiler-rt/lib/sanitizer_common/sanitizer_internal_defs.h:194:76: current parser token ';'
+2.  /home/jubi/superopt/blockpc-fix/test/llvm/projects/compiler-rt/lib/sanitizer_common/sanitizer_internal_defs.h:58:1: parsing namespace '__sanitizer'
+clang-4.0: error: unable to execute command: Aborted
+clang-4.0: error: clang frontend command failed due to signal (use -v to see invocation)
+clang version 4.0.0 (trunk 284808)
+Target: i386-unknown-linux-gnu
+Thread model: posix
+InstalledDir: /home/jubi/superopt/blockpc-fix/test/build/projects/compiler-rt/lib/sanitizer_common/tests/../../../../../bin
+clang-4.0: note: diagnostic msg: PLEASE submit a bug report to http://llvm.org/bugs/ and include the crash backtrace, preprocessed source, and associated run script.
+#0 0x00000000010a9805 llvm::sys::PrintStackTrace(llvm::raw_ostream&) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x10a9805)
+#1 0x00000000010a9d76 SignalHandler(int) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x10a9d76)
+#2 0x00002b2af2c6e330 __restore_rt (/lib/x86_64-linux-gnu/libpthread.so.0+0x10330)
+#3 0x00002b2af3f20c37 gsignal /build/eglibc-oGUzwX/eglibc-2.19/signal/../nptl/sysdeps/unix/sysv/linux/raise.c:56:0
+#4 0x00002b2af3f24028 abort /build/eglibc-oGUzwX/eglibc-2.19/stdlib/abort.c:91:0
+#5 0x00002b2af3f19bf6 __assert_fail_base /build/eglibc-oGUzwX/eglibc-2.19/assert/assert.c:92:0
+#6 0x00002b2af3f19ca2 (/lib/x86_64-linux-gnu/libc.so.6+0x2fca2)
+#7 0x00000000026253b0 clang::ASTContext::getFunctionTypeInternal(clang::QualType, llvm::ArrayRef<clang::QualType>, clang::FunctionProtoType::ExtProtoInfo const&, bool) const (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x26253b0)
+#8 0x00000000026251cf clang::ASTContext::getFunctionTypeInternal(clang::QualType, llvm::ArrayRef<clang::QualType>, clang::FunctionProtoType::ExtProtoInfo const&, bool) const (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x26251cf)
+#9 0x0000000002336f15 GetFullTypeForDeclarator((anonymous namespace)::TypeProcessingState&, clang::QualType, clang::TypeSourceInfo*) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x2336f15)
+#10 0x0000000002330830 clang::Sema::GetTypeForDeclarator(clang::Declarator&, clang::Scope*) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x2330830)
+#11 0x0000000001f1a331 clang::Sema::HandleDeclarator(clang::Scope*, clang::Declarator&, llvm::MutableArrayRef<clang::TemplateParameterList*>) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1f1a331)
+#12 0x0000000001f19f35 clang::Sema::ActOnDeclarator(clang::Scope*, clang::Declarator&) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1f19f35)
+#13 0x0000000001c6506b clang::Parser::ParseDeclarationAfterDeclaratorAndAttributes(clang::Declarator&, clang::Parser::ParsedTemplateInfo const&, clang::Parser::ForRangeInit*) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c6506b)
+#14 0x0000000001c63f71 clang::Parser::ParseDeclGroup(clang::ParsingDeclSpec&, unsigned int, clang::SourceLocation*, clang::Parser::ForRangeInit*) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c63f71)
+#15 0x0000000001c60297 clang::Parser::ParseSimpleDeclaration(unsigned int, clang::SourceLocation&, clang::Parser::ParsedAttributesWithRange&, bool, clang::Parser::ForRangeInit*) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c60297)
+#16 0x0000000001c5febd clang::Parser::ParseDeclaration(unsigned int, clang::SourceLocation&, clang::Parser::ParsedAttributesWithRange&) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c5febd)
+#17 0x0000000001c4b9d1 clang::Parser::ParseExternalDeclaration(clang::Parser::ParsedAttributesWithRange&, clang::ParsingDeclSpec*) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c4b9d1)
+#18 0x0000000001c76f87 clang::Parser::ParseInnerNamespace(std::vector<clang::SourceLocation, std::allocator<clang::SourceLocation> >&, std::vector<clang::IdentifierInfo*, std::allocator<clang::IdentifierInfo*> >&, std::vector<clang::SourceLocation, std::allocator<clang::SourceLocation> >&, unsigned int, clang::SourceLocation&, clang::ParsedAttributes&, clang::BalancedDelimiterTracker&) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c76f87)
+#19 0x0000000001c767af clang::Parser::ParseNamespace(unsigned int, clang::SourceLocation&, clang::SourceLocation) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c767af)
+#20 0x0000000001c5fdb7 clang::Parser::ParseDeclaration(unsigned int, clang::SourceLocation&, clang::Parser::ParsedAttributesWithRange&) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c5fdb7)
+#21 0x0000000001c4b9d1 clang::Parser::ParseExternalDeclaration(clang::Parser::ParsedAttributesWithRange&, clang::ParsingDeclSpec*) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c4b9d1)
+#22 0x0000000001c4b4e9 clang::Parser::ParseTopLevelDecl(clang::OpaquePtr<clang::DeclGroupRef>&) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c4b4e9)
+#23 0x0000000001c4aefc clang::Parser::ParseFirstTopLevelDecl(clang::OpaquePtr<clang::DeclGroupRef>&) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c4aefc)
+#24 0x0000000001c472d5 clang::ParseAST(clang::Sema&, bool, bool) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1c472d5)
+#25 0x0000000001553055 clang::FrontendAction::Execute() (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x1553055)
+#26 0x000000000151bf61 clang::CompilerInstance::ExecuteAction(clang::FrontendAction&) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x151bf61)
+#27 0x00000000015cbe86 clang::ExecuteCompilerInvocation(clang::CompilerInstance*) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x15cbe86)
+#28 0x000000000071f70f cc1_main(llvm::ArrayRef<char const*>, char const*, void*) (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x71f70f)
+#29 0x000000000071c0bc main (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x71c0bc)
+#30 0x00002b2af3f0bf45 __libc_start_main /build/eglibc-oGUzwX/eglibc-2.19/csu/libc-start.c:321:0
+#31 0x000000000071b312 _start (/home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0+0x71b312)
+Stack dump:
+0.  Program arguments: /home/jubi/superopt/blockpc-fix/test/build/bin/clang-4.0 -cc1 -triple i386-unknown-linux-gnu -emit-obj -disable-free -main-file-name sanitizer_bitvector_test.cc -mrelocation-model pic -pic-level 2 -mthread-model posix -fmath-errno -masm-verbose -mconstructor-aliases -fuse-init-array -target-cpu pentium4 -momit-leaf-frame-pointer -dwarf-column-info -debug-info-kind=line-tables-only -dwarf-version=4 -debugger-tuning=gdb -ffunction-sections -fdata-sections -coverage-notes-file /home/jubi/superopt/blockpc-fix/test/build/projects/compiler-rt/lib/sanitizer_common/tests/sanitizer_bitvector_test.cc.i386.gcno -resource-dir /home/jubi/superopt/blockpc-fix/test/build/bin/../lib/clang/4.0.0 -D GTEST_NO_LLVM_RAW_OSTREAM=1 -D GTEST_HAS_RTTI=0 -I /home/jubi/superopt/blockpc-fix/test/llvm/utils/unittest/googletest/include -I /home/jubi/superopt/blockpc-fix/test/llvm/utils/unittest/googletest -I /home/jubi/superopt/blockpc-fix/test/llvm/projects/compiler-rt/include -I /home/jubi/superopt/blockpc-fix/test/llvm/projects/compiler-rt/lib -I /home/jubi/superopt/blockpc-fix/test/llvm/projects/compiler-rt/lib/sanitizer_common -internal-isystem /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../include/c++/4.8 -internal-isystem /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../include/x86_64-linux-gnu/c++/4.8/32 -internal-isystem /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../include/i386-linux-gnu/c++/4.8 -internal-isystem /usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../include/c++/4.8/backward -internal-isystem /usr/local/include -internal-isystem /home/jubi/superopt/blockpc-fix/test/build/bin/../lib/clang/4.0.0/include -internal-externc-isystem /include -internal-externc-isystem /usr/include -O2 -Wall -W -Wno-unused-parameter -Wwrite-strings -Wcast-qual -Wmissing-field-initializers -Wno-long-long -Wcovered-switch-default -Wnon-virtual-dtor -Wdelete-non-virtual-dtor -Werror=date-time -Wall -Wno-unused-parameter -Wno-unknown-warning-option -Werror=sign-compare -Wno-non-virtual-dtor -pedantic -std=c++11 -fdeprecated-macro -fdebug-compilation-dir /home/jubi/superopt/blockpc-fix/test/build/projects/compiler-rt/lib/sanitizer_common/tests -ferror-limit 19 -fmessage-length 128 -fvisibility-inlines-hidden -fno-rtti -fobjc-runtime=gcc -fcxx-exceptions -fexceptions -fdiagnostics-show-option -fcolor-diagnostics -vectorize-loops -vectorize-slp -o sanitizer_bitvector_test.cc.i386.o -x c++ /home/jubi/superopt/blockpc-fix/test/llvm/projects/compiler-rt/lib/sanitizer_common/tests/sanitizer_bitvector_test.cc 
+1.  /home/jubi/superopt/blockpc-fix/test/llvm/projects/compiler-rt/lib/sanitizer_common/sanitizer_internal_defs.h:194:76: current parser token ';'
+2.  /home/jubi/superopt/blockpc-fix/test/llvm/projects/compiler-rt/lib/sanitizer_common/sanitizer_internal_defs.h:58:1: parsing namespace '__sanitizer'
+clang-4.0: error: unable to execute command: Aborted
+clang-4.0: error: clang frontend command failed due to signal (use -v to see invocation)
+clang version 4.0.0 (trunk 284808)
+Target: i386-unknown-linux-gnu
+Thread model: posix
+InstalledDir: /home/jubi/superopt/blockpc-fix/test/build/projects/compiler-rt/lib/sanitizer_common/tests/../../../../../bin
+clang-4.0: note: diagnostic msg: PLEASE submit a bug report to http://llvm.org/bugs/ and include the crash backtrace, preprocessed source, and associated run script.
+clang-4.0: note: diagnostic msg: 
+********************
+
+PLEASE ATTACH THE FOLLOWING FILES TO THE BUG REPORT:
+Preprocessed source(s) and associated run script(s) are located at:
+clang-4.0: note: diagnostic msg: /tmp/sanitizer_atomic_test-6984cb.cpp
+clang-4.0: note: diagnostic msg: /tmp/sanitizer_atomic_test-6984cb.sh
+clang-4.0: note: diagnostic msg: 
+
+********************
+make[3]: *** [projects/compiler-rt/lib/sanitizer_common/tests/sanitizer_atomic_test.cc.i386.o] Error 254
+clang-4.0: note: diagnostic msg: 
+********************
+
+PLEASE ATTACH THE FOLLOWING FILES TO THE BUG REPORT:
+Preprocessed source(s) and associated run script(s) are located at:
+clang-4.0: note: diagnostic msg: /tmp/sanitizer_bitvector_test-7c5804.cpp
+clang-4.0: note: diagnostic msg: /tmp/sanitizer_bitvector_test-7c5804.sh
+clang-4.0: note: diagnostic msg: 
+
+********************
+make[3]: *** [projects/compiler-rt/lib/sanitizer_common/tests/sanitizer_bitvector_test.cc.i386.o] Error 254
+make[2]: *** [projects/compiler-rt/lib/sanitizer_common/tests/CMakeFiles/Sanitizer-i386-Test.dir/all] Error 2
+[ 96%] Built target GotsanRuntimeCheck
+make[1]: *** [CMakeFiles/check-all.dir/rule] Error 2
+make: *** [check-all] Error 2
+jubi@klein:~/superopt/blockpc-fix/test/build$ 
