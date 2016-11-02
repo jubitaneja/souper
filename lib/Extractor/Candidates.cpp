@@ -615,12 +615,14 @@ void ExprBuilder::addPathConditions(BlockPCs &BPCs,
 
     VisitedBlocks.insert(BI.B);
     for (unsigned i = 0; i < BI.Preds.size(); ++i) {
-      std::vector<InstMapping> PCs;
       auto Pred = BI.Preds[i];
-      addPathConditions(BPCs, PCs, VisitedBlocks, Pred);
-      // In case the predecessor is a br or switch instruction.
-      if (!Pred->getSinglePredecessor())
+      std::vector<InstMapping> PCs;
+      if (Pred->getSinglePredecessor()) {
+        addPathConditions(BPCs, PCs, VisitedBlocks, Pred);
+      } else {
+        // In case the predecessor is a br or switch instruction.
         addPC(BB, Pred, PCs);
+      }
       for (auto PC : PCs)
         BPCs.emplace_back(BlockPCMapping(BI.B, i, PC));
     }
