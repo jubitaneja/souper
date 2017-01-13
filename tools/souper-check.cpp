@@ -27,6 +27,10 @@ static cl::opt<bool> PrintCounterExample("print-counterexample",
     cl::desc("Print counterexample (default=true)"),
     cl::init(true));
 
+static cl::opt<bool> KnownBits("infer-known-bits",
+    cl::desc("Compute known bits for the candidate (default=false)"),
+    cl::init(false));
+
 static cl::opt<bool> PrintRepl("print-replacement",
     cl::desc("Print the replacement, if valid (default=false)"),
     cl::init(false));
@@ -66,6 +70,17 @@ int SolveInst(const MemoryBufferRef &MB, Solver *S) {
 
   if (ParseOnly || ParseLHSOnly) {
     llvm::outs() << "; parsing successful\n";
+    return 0;
+  }
+
+  if (KnownBits) {
+    APInt Zeros, Ones;
+    if (std::error_code EC = S->knownBits(Rep.BPCs, Rep.PCs, Rep.Mapping.LHS,
+                                          Zeros, Ones, IC)) {
+      llvm::errs() << EC.message() << '\n';
+    }
+    std::string s = Inst::getKnownBitsString(Zeros, Ones);
+    llvm::outs() << "known from souper: " << s << "\n";
     return 0;
   }
 

@@ -45,6 +45,10 @@ static llvm::cl::opt<bool> HarvestKnownBits(
     "souper-harvest-known-bits",
     llvm::cl::desc("Perform known bits analysis (default=true)"),
     llvm::cl::init(true));
+static llvm::cl::opt<bool> PrintKnownAtReturn(
+    "print-known-at-return",
+    llvm::cl::desc("Print known bits in each value returned from a function (default=false)"),
+    llvm::cl::init(false));
 
 using namespace llvm;
 using namespace klee;
@@ -712,6 +716,14 @@ void ExtractExprCandidates(Function &F, const LoopInfo *LI,
   for (auto &BB : F) {
     std::unique_ptr<BlockCandidateSet> BCS(new BlockCandidateSet);
     for (auto &I : BB) {
+      if (PrintKnownAtReturn && isa<ReturnInst>(I)) {
+        auto V = I.getOperand(0);
+        auto DL = F.getParent()->getDataLayout();
+        unsigned Width = DL.getTypeSizeInBits(V->getType());
+        APInt KnownZero(Width, 0, false), KnownOne(Width, 0, false);
+        computeKnownBits(V, KnownZero, KnownOne, DL);
+        llvm::outs() << "known at return: " << Inst::getKnownBitsString(KnownZero, KnownOne) << "\n";
+      }
       if (I.getType()->isIntegerTy())
         BCS->Replacements.emplace_back(&I, InstMapping(EB.get(&I), 0));
     }

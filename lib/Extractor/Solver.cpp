@@ -73,6 +73,41 @@ public:
   BaseSolver(std::unique_ptr<SMTLIBSolver> SMTSolver, unsigned Timeout)
       : SMTSolver(std::move(SMTSolver)), Timeout(Timeout) {}
 
+  bool testKnown(const BlockPCs &BPCs,
+                const std::vector<InstMapping> &PCs,
+                APInt &Zeros, APInt &Ones, Inst *LHS,
+                InstContext &IC) {
+    unsigned W = LHS->Width;
+    Inst *Mask = IC.getConst(Zeros | Ones);
+    InstMapping Mapping(IC.getInst(Inst::And, W, { LHS, Mask }), IC.getConst(Ones));
+    bool IsSat;
+    std::error_code EC = SMTSolver->isSatisfiable(BuildQuery(BPCs, PCs, Mapping, 0),
+                                                  IsSat, 0, 0, Timeout);
+    if (EC)
+      llvm::report_fatal_error("stopping due to error");
+    return !IsSat;
+  }
+
+  std::error_code knownBits(const BlockPCs &BPCs,
+                          const std::vector<InstMapping> &PCs,
+                          Inst *LHS, APInt &Zeros, APInt &Ones,
+                          InstContext &IC) override {
+    unsigned W = LHS->Width;
+    Ones = APInt::getNullValue(W);
+    Zeros = APInt::getNullValue(W);
+    for (unsigned I=0; I<W; I++) {
+      APInt ZeroGuess = Zeros | APInt::getOneBitSet(W, I);
+      if (testKnown(BPCs, PCs, ZeroGuess, Ones, LHS, IC)) {
+        Zeros = ZeroGuess;
+        continue;
+      }
+      APInt OneGuess = Ones | APInt::getOneBitSet(W, I);
+      if (testKnown(BPCs, PCs, Zeros, OneGuess, LHS, IC))
+        Ones = OneGuess;
+    }
+    return std::error_code();
+  }
+
   std::error_code infer(const BlockPCs &BPCs,
                         const std::vector<InstMapping> &PCs,
                         Inst *LHS, Inst *&RHS, InstContext &IC) override {
@@ -279,6 +314,13 @@ public:
     return UnderlyingSolver->getName() + " + internal cache";
   }
 
+  std::error_code knownBits(const BlockPCs &BPCs,
+                            const std::vector<InstMapping> &PCs,
+                            Inst *LHS, APInt &Zeros, APInt &Ones,
+                            InstContext &IC) override {
+    return UnderlyingSolver->knownBits(BPCs, PCs, LHS, Zeros, Ones, IC);
+  }
+
 };
 
 class ExternalCachingSolver : public Solver {
@@ -339,6 +381,15 @@ public:
 
   std::string getName() override {
     return UnderlyingSolver->getName() + " + external cache";
+  }
+
+
+  std::error_code knownBits(const BlockPCs &BPCs,
+                            const std::vector<InstMapping> &PCs,
+                            Inst *LHS, APInt &Zeros, APInt &Ones,
+                            InstContext &IC) override {
+
+    return UnderlyingSolver->knownBits(BPCs, PCs, LHS, Zeros, Ones, IC);
   }
 
 };

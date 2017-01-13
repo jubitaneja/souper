@@ -37,6 +37,11 @@ public:
           InstMapping Mapping, bool &IsValid,
           std::vector<std::pair<Inst *, llvm::APInt>> *Model) = 0;
   virtual std::string getName() = 0;
+  virtual
+  std::error_code knownBits(const BlockPCs &BPCs,
+                            const std::vector<InstMapping> &PCs,
+                            Inst *LHS, llvm::APInt &Zeros, llvm::APInt &Ones,
+                            InstContext &IC) = 0;
 };
 
 std::unique_ptr<Solver> createBaseSolver(
