@@ -1,0 +1,2 @@
+Results of infer known bits are at:
+http://www.cs.utah.edu/~jubi/cache_dump_infer_knownbits.txt
