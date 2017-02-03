@@ -121,7 +121,6 @@ def parseInst(i):
         if "overflow" in i[2]:
             width = "i" + str(int(width[1:])-1)
         widths[reg] = width
-        ops = parseOps(i[3:])
         if inst == "var":
             ops = i[3:]
         else:
@@ -225,7 +224,9 @@ def propagateArgNames(insts):
             argmap[reg] = newreg
             widths[newreg] = width
             if len(ops):
-                assert len(ops) == 1, "one mask expected, got %d" % len(ops)
+                #Jubi
+                #assert len(ops) == 1, "one mask expected, got %d" % len(ops)
+                assert len(ops) <= 2, "one mask expected, got %d" % len(ops)
                 parseKnownBits(ops[0],newreg)
             counter += 1
             continue
