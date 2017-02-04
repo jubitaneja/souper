@@ -203,12 +203,30 @@ if (0) {
 	}
     }
 }
-    
+
 sub llvm_known($) {
     (my $opt) = @_;
     (my $fh1, my $fn1) = File::Temp::tempfile();
     print $fh1 $opt;
     close $fh1;
+    #-------------------------------------------------------
+    #open the fn1 file which is souper file - print it as well
+    open SOUPER, "$fn1" or die "can't open souper file\n";
+    print "Souper code is as below\n";
+    while (my $row = <SOUPER>) {
+      chomp $row;
+      print "$row\n";
+    }
+
+    #now pass above souper code to souper2llvm and print the generated llvm code
+    open LLVM, "$triager < $fn1 | " or die "can't run souper2llvm\n";
+    print "llvm code is below \n";
+    while (my $rowl = <LLVM>) {
+      chomp $rowl;
+      print "$rowl\n";
+    }
+    #-------------------------------------------------------
+
     open INF, "$triager < $fn1 | $llvmas | $souper -print-known-at-return |" or die;
     my $known;
     while (my $line = <INF>) {
@@ -218,9 +236,31 @@ sub llvm_known($) {
 	}
     }
     close INF;
+    #-------------------------------------------------------
+    close SOUPER;
+    close LLVM;
+    #-------------------------------------------------------
     return $known if defined $known;
     return "oops";
 }
+
+#sub llvm_known($) {
+#    (my $opt) = @_;
+#    (my $fh1, my $fn1) = File::Temp::tempfile();
+#    print $fh1 $opt;
+#    close $fh1;
+#    open INF, "$triager < $fn1 | $llvmas | $souper -print-known-at-return |" or die;
+#    my $known;
+#    while (my $line = <INF>) {
+#	chomp $line;
+#	if ($line =~ /known at return: (.*)$/) {
+#	    $known = $1;
+#	}
+#    }
+#    close INF;
+#    return $known if defined $known;
+#    return "oops";
+#}
 
 sub bylen { length $a <=> length $b }
 sub bysprofile { $sprofiles{$b} <=> $sprofiles{$a} }
