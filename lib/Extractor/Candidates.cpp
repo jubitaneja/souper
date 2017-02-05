@@ -167,9 +167,9 @@ Inst *ExprBuilder::makeArrayRead(Value *V) {
     if (V->getType()->isIntOrIntVectorTy() ||
         V->getType()->getScalarType()->isPointerTy()) {
       computeKnownBits(V, KnownZero, KnownOne, DL);
-      NonZero = isKnownNonZero(V, DL);
-      NonNegative = isKnownNonNegative(V, DL);
-      PowOfTwo = isKnownToBeAPowerOfTwo(V, DL);
+      //NonZero = isKnownNonZero(V, DL);
+      //NonNegative = isKnownNonNegative(V, DL);
+      //PowOfTwo = isKnownToBeAPowerOfTwo(V, DL);
     }
   return IC.createVar(Width, Name, KnownZero, KnownOne, NonZero, NonNegative,
                       PowOfTwo);
