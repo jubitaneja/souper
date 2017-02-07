@@ -1,2 +1,5 @@
-Results of infer known bits are at:
-http://www.cs.utah.edu/~jubi/cache_dump_infer_knownbits.txt
+Results of infer known bits after applying the depth limit of 2
+souper2llvm fails to generate correct code for souper IR involving 'pc'
+We ignore these errors for now.
+
+http://www.cs.utah.edu/~jubi/infer-kb-depth-2.txt
