@@ -16,7 +16,7 @@
 
 import fileinput, sys, copy
 
-widths, knownzeros, knownones = dict(), dict(), dict()
+widths, knownzeros, knownones, nonNegative = dict(), dict(), dict(), dict()
 pcmap, argmap = dict(), dict()
 cand = None
 needsResult = False
@@ -223,11 +223,19 @@ def propagateArgNames(insts):
             newreg = "%x" + str(counter)
             argmap[reg] = newreg
             widths[newreg] = width
+            widthValue = width.strip("i")
             if len(ops):
                 #Jubi
                 #assert len(ops) == 1, "one mask expected, got %d" % len(ops)
-                assert len(ops) <= 2, "one mask expected, got %d" % len(ops)
-                parseKnownBits(ops[0],newreg)
+                assert len(ops) <= 2, "atmost two masks expected, got %d" % len(ops)
+                if "0" in ops[0] or "1" in ops[0] or "x" in ops[0]:
+                    parseKnownBits(ops[0],newreg)
+                elif "n" in ops[0] or "z" in ops[0] or "p" in ops[0]:
+                    parseNZP(ops[0], newreg, int(widthValue))
+                elif "0" in ops[0] or "1" in ops[0] or "x" in ops[1]:
+                    parseKnownBits(ops[1], newreg)
+                elif "n" in ops[0] or "z" in ops[0] or "p" in ops[1]:
+                    parseNZP(ops[1], newreg, int(widthValue))
             counter += 1
             continue
         for k, op in enumerate(ops):
@@ -411,6 +419,24 @@ def parseKnownBits(s,reg):
         print ";   no one mask needed"
     print
 
+def parseNZP(s,reg, width):
+    assert "(" in s and ")" in s
+    s = s.strip("(").strip(")")
+    nonNegativeMask = 0
+    bit = 0
+    for c in s[::]:
+        if c == 'n':
+            while (bit < width-1):
+                nonNegativeMask += 1<<bit
+                bit += 1
+            print "; for " + str(bit) + " bit value " + s
+            if nonNegativeMask != 0:
+                nonNegative[reg] = nonNegativeMask
+                print ";   val = val & " + str(nonNegativeMask)
+            else:
+                print ";   no non negative mask needed"
+            print
+
 def printFuncHeader():
     regtmps = {}
     for i, reg in enumerate(argmap.values()):
@@ -434,11 +460,20 @@ def printFuncHeader():
             regtmps[reg] = name
             masks = "  " + old + " = or " + w + " " + name + ", " + str(knownones[reg]) + "\n" +\
             "  store " + w + " " + old + ", " + w + "* @glob_" + regnum + "_or\n" + masks
+        if reg in nonNegative:
+            regnum = reg[1:]
+            w = widths[reg]
+            old = regtmps[reg]
+            name = "%t3_" + regnum
+            regtmps[reg] = name
+            masks = "  " + old + " = and " + w + " " + name + ", " + str(nonNegative[reg]) + "\n" +\
+            "  store " + w + " " + old + ", " + w + "* @glob_" + regnum + "_nonNegative\n" + masks
     # global declarations: dummy store, intrinsics
     print "target datalayout = \"e-m:e-i64:64-f80:128-n8:16:32:64-S128\"\n"
     for i, reg in enumerate(argmap.values()):
         print "@glob_" + reg[1:] + "_and = external global " + widths[reg]
         print "@glob_" + reg[1:] + "_or = external global " + widths[reg]
+        print "@glob_" + reg[1:] + "_nonNegative = external global " + widths[reg]
     for decl in intrdecl.values():
         print decl
     print "\ndefine " + cand[1] + " @foo(",
