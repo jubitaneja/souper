@@ -343,7 +343,7 @@ sub wait_for_one() {
     $num_running--;
 }
 
-foreach my $opt (sort bysprofile keys %toprint) {
+foreach my $opt (sort bylen keys %toprint) {
     wait_for_one() unless $num_running < $NPROCS;
     die unless $num_running < $NPROCS;
     my $pid = fork();
