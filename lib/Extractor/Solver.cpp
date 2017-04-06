@@ -73,7 +73,7 @@ public:
   BaseSolver(std::unique_ptr<SMTLIBSolver> SMTSolver, unsigned Timeout)
       : SMTSolver(std::move(SMTSolver)), Timeout(Timeout) {}
 
-  bool testNonNegative(const BlockPCs &BPCs,
+  bool testZeroSign(const BlockPCs &BPCs,
                 const std::vector<InstMapping> &PCs,
                 APInt &NonNegative, Inst *LHS,
                 InstContext &IC) {
@@ -89,6 +89,21 @@ public:
     return !IsSat;
   }
 
+  bool testOneSign(const BlockPCs &BPCs,
+                const std::vector<InstMapping> &PCs,
+                APInt &NonNegative, Inst *LHS,
+                InstContext &IC) {
+    unsigned W = LHS->Width;
+    Inst *Mask = IC.getConst(NonNegative);
+    InstMapping Mapping(IC.getInst(Inst::And, W, { LHS, Mask }), Mask);
+    bool IsSat;
+    std::error_code EC = SMTSolver->isSatisfiable(BuildQuery(BPCs, PCs, Mapping, 0),
+                                                  IsSat, 0, 0, Timeout);
+    if (EC)
+      llvm::report_fatal_error("stopping due to error");
+    return !IsSat;
+  }
+
   std::error_code nonNegative(const BlockPCs &BPCs,
                               const std::vector<InstMapping> &PCs,
                               Inst *LHS, APInt &NonNegative,
@@ -96,9 +111,9 @@ public:
     unsigned W = LHS->Width;
     NonNegative = APInt::getNullValue(W);
     APInt NonNegativeGuess = NonNegative | APInt::getOneBitSet(W, W-1);
-    if (testNonNegative(BPCs, PCs, NonNegativeGuess, LHS, IC))
+    if (testZeroSign(BPCs, PCs, NonNegativeGuess, LHS, IC))
       NonNegative = APInt::getNullValue(W);
-    else
+    else if (testOneSign(BPCs, PCs, NonNegativeGuess, LHS, IC))
       NonNegative = NonNegativeGuess;
     return std::error_code();
   }
