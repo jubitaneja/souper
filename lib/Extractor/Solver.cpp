@@ -115,6 +115,8 @@ public:
       NonNegative = APInt::getNullValue(W);
     else if (testOneSign(BPCs, PCs, NonNegativeGuess, LHS, IC))
       NonNegative = NonNegativeGuess;
+    else
+      NonNegative = NonNegativeGuess; //if sign-bit is not guessed as 0 or 1, set non-negative signbit to 1, so that nothing is inferred by souper at the end
     return std::error_code();
   }
 
