@@ -81,9 +81,9 @@ int SolveInst(const MemoryBufferRef &MB, Solver *S) {
     }
     std::string s;
     if (NonNegative == APInt::getNullValue(Rep.Mapping.LHS->Width))
-      s = Inst::getMoreKnownBitsString(0, 1, 0);
+      s = Inst::getMoreKnownBitsString(0, 1, 0, 0);
     else
-      s = Inst::getMoreKnownBitsString(0, 0, 0);
+      s = Inst::getMoreKnownBitsString(0, 0, 0, 0);
     llvm::outs() << "known from souper: " << s << "\n";
     return 0;
   }
