@@ -41,9 +41,9 @@ static llvm::cl::opt<bool> ExploitBPCs(
     "souper-exploit-blockpcs",
     llvm::cl::desc("Exploit block path conditions (default=false)"),
     llvm::cl::init(false));
-static llvm::cl::opt<bool> HarvestKnownBits(
-    "souper-harvest-known-bits",
-    llvm::cl::desc("Perform known bits analysis (default=true)"),
+static llvm::cl::opt<bool> HarvestDataFlowFacts(
+    "souper-harvest-dataflow-facts",
+    llvm::cl::desc("Perform data flow analysis (default=true)"),
     llvm::cl::init(true));
 static llvm::cl::opt<bool> PrintKnownAtReturn(
     "print-known-at-return",
@@ -162,17 +162,20 @@ Inst *ExprBuilder::makeArrayRead(Value *V) {
     Name = V->getName();
   unsigned Width = DL.getTypeSizeInBits(V->getType());
   APInt KnownZero(Width, 0, false), KnownOne(Width, 0, false);
-  bool NonZero = false, NonNegative = false, PowOfTwo = false;
-  if (HarvestKnownBits)
+  bool NonZero = false, NonNegative = false, PowOfTwo = false, Negative = false;
+  unsigned NumSignBits = 1;
+  if (HarvestDataFlowFacts)
     if (V->getType()->isIntOrIntVectorTy() ||
         V->getType()->getScalarType()->isPointerTy()) {
       computeKnownBits(V, KnownZero, KnownOne, DL);
       //NonZero = isKnownNonZero(V, DL);
       //NonNegative = isKnownNonNegative(V, DL);
       //PowOfTwo = isKnownToBeAPowerOfTwo(V, DL);
+      //Negative = isKnownNegative(V, DL);
+      //NumSignBits = ComputeNumSignBits(V, DL);
     }
   return IC.createVar(Width, Name, KnownZero, KnownOne, NonZero, NonNegative,
-                      PowOfTwo);
+                      PowOfTwo, Negative, NumSignBits);
 }
 
 Inst *ExprBuilder::buildConstant(Constant *c) {
