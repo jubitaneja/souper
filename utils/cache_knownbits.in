@@ -249,7 +249,7 @@ sub llvm_known($) {
     (my $fh1, my $fn1) = File::Temp::tempfile();
     print $fh1 $opt;
     close $fh1;
-    open INF, "$triager < $fn1 | $llvmas | $llvmopt -instsimplify | $souper -print-known-at-return |" or die;
+    open INF, "$triager < $fn1 | $llvmas | $souper -print-known-at-return |" or die;
     my $known;
     while (my $line = <INF>) {
 	chomp $line;
