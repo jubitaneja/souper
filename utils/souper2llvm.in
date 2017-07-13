@@ -26,6 +26,9 @@ labels = ["foo0"]
 cnt = 0
 cnt2 = 0
 cnt3 = 0
+#Utah
+independent = []
+#Utah
 
 # souper IR -> LLVM inst map
 instmap = {
@@ -108,8 +111,14 @@ def parseInst(i):
     elif i[0] == "pc":
         assert len(i) == 3, "wrong instruction length %d, %s" % (len(i), i)
         inst = i[0]
+        print ";inst = " + inst #Utah
         reg = i[1]
+        print ";reg(pc) = " + reg #Utah
         ops = [parseConst(i[2])]
+        #Utah
+        for jop in ops:
+            print ";op = " + str(jop)
+        #Utah
     elif i[0][0] == "%":
         assert len(i) >= 3, "wrong instruction length %d, %s" % (len(i), i)
         tmp = i[0].split(":")
@@ -218,6 +227,7 @@ def propagateArgNames(insts):
     res = []
     counter = 1
     for i in insts:
+        print i #Utah
         reg, width, inst, ops = i
         if inst == "var":
             newreg = "%x" + str(counter)
@@ -227,21 +237,25 @@ def propagateArgNames(insts):
             if len(ops):
                 #Jubi
                 #assert len(ops) == 1, "one mask expected, got %d" % len(ops)
-                assert len(ops) <= 2, "atmost two masks expected, got %d" % len(ops)
+                assert len(ops) <= 3, "atmost three dataflow facts expected, got %d" % len(ops)
                 if "0" in ops[0] or "1" in ops[0] or "x" in ops[0]:
                     parseKnownBits(ops[0],newreg)
-                elif "n" in ops[0] or "z" in ops[0] or "p" in ops[0]:
+                elif "n" in ops[0] or "z" in ops[0] or "2" in ops[0]:
                     parseNZP(ops[0], newreg, int(widthValue))
-                elif "0" in ops[0] or "1" in ops[0] or "x" in ops[1]:
+                elif "0" in ops[1] or "1" in ops[1] or "x" in ops[1]:
                     parseKnownBits(ops[1], newreg)
-                elif "n" in ops[0] or "z" in ops[0] or "p" in ops[1]:
+                elif "n" in ops[1] or "z" in ops[1] or "2" in ops[1]:
                     parseNZP(ops[1], newreg, int(widthValue))
+                elif "0" in ops[2] or "1" in ops[2] or "x" in ops[2]:
+                    parseKnownBits(ops[2], newreg)
             counter += 1
             continue
         for k, op in enumerate(ops):
             if op[0] in argmap:
                 ops[k][0] = argmap[op[0]]
         res.append(i)
+        print ";propagateargnames = " + str(res) #Utah
+        print "\n\n" #Utah
     return res
 
 def groupPhis(insts):
@@ -344,7 +358,11 @@ def rewriteRegs(insts):
         elif inst == "pc":
             assert reg in newregs, "unknown reg %s for %s" % (reg, i)
             newreg = newregs[reg]
+            print "**** rewrite func for pc : newreg" #Utah
+            print newreg #Utah
             pc = [newreg, width, inst, ops]
+            print "***** rewrite func for pc:   pc [newreg, width, inst ops] = " #Utah
+            print pc
             if newreg in pcmap:
                 pcmap[newreg].append(pc)
             else:
@@ -368,6 +386,15 @@ def rewriteRegs(insts):
             newregs[reg] = newreg
         else:
             newinst = [newreg, width, inst, ops]
+            print "---------------------- --------- in rewrite else case: " #Utah
+            print newinst #Utah
+            #Utah
+            for kpc in pcmap:
+                if kpc in newinst:
+                    print "\n %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%     dependent\n"
+                else:
+                    print "\n %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%     independent\n"
+            #Utah
             # store intrinsic func decls
             if inst in intrinsts:
                 if (inst+width) not in intrdecl:
@@ -380,7 +407,16 @@ def rewriteRegs(insts):
                                           + width + "(" + width + ") #" \
                                           + str(len(intrdecl))
                     intrdecl[inst+width] = decl
-            res.append(newinst)
+            #Utah
+            #independent = []
+            if not pcmap:
+                res.append(newinst)
+            else:
+                independent.append(newinst)
+            #Utah
+            #res.append(newinst)
+    print "; &&&&&&&&&&&     &&&&&&&&&&&&&&&    rewrite regs = " + str(res) + "\n"
+    print "; &&&&&&&&&&&     &&&&&&&&&&&&&&&    INDEPENDENT ::::  rewrite regs = " + str(independent) + "\n"
     return res
 
 def rewriteOps(inst, newregs, ops):
@@ -439,6 +475,13 @@ def parseNZP(s,reg, width):
 
 def printFuncHeader():
     regtmps = {}
+    #Utah
+    for jkey in argmap:
+        print "****\n"
+        print jkey
+        print argmap[jkey]
+        print "***\n"
+    #Utah
     for i, reg in enumerate(argmap.values()):
         regtmps[reg] = reg
     masks = ""
@@ -488,11 +531,31 @@ def printFuncHeader():
     print masks
 
 def printFuncBody(insts):
+#Utah
+    for jin in insts:
+        print "*****************************************\n"
+        print jin
+        print "*****************************************\n"
+#Utah
     for i in insts:
         print translateInstToLLVM(i)
 
 def printPCs():
+#Utah
+    for jpc in pcmap:
+        print "###  pcmap##\n"
+        print jpc
+        print pcmap[jpc]
+        print "###\n"
+#Utah
     for reg, pcs in pcmap.items():
+    #Utah
+        print "In pcmap ::: reg = "
+        print reg
+        print "In pcmap :::::: pcs "
+        print pcs
+        print "\n"
+    #Utah
         global cnt
         global cnt2
         s = ""
@@ -501,12 +564,16 @@ def printPCs():
                          + pc[3][0][0] + ", " + pc[0] + "\n"
             s += "  br i1 %tmp" + str(cnt) + ", label %cont" + str(cnt2) \
                                 + ", label %out\n"
+            #TODO: Utah: add a label out and its statement
+            s += "out:\n"
+            s += "  ret " + cand[1] + "0\n"
             s += "cont" + str(cnt2) + ":"
             if k < len(pcs)-1:
                 s += "\n"
             cnt += 1
             cnt2 += 1
         print s
+        print "*********end\n"
 
 def printFuncFooter():
     assert cand, "there must be a candidate"
@@ -527,18 +594,46 @@ def printFuncFooter():
     print "}"
 
 def printLHSFuncFooter():
+#Utah
+# print the independent set of instructions in cont label
+    for i in independent:
+        print "(((((((((((((((((     Independent inst at the end   )))))))))))))))))"
+        print i #Utah
+        print translateInstToLLVM(i)
+#Utah
     print "  ret " + cand[1] + " " + cand[0]
     print "}"
 
 lines = readOpt()
 insts = parseInsts(lines)
+print "######################## After parseInsts()\n"
+#Utah
+for jin in insts:
+    print jin
+#Utah
 insts = propagateArgNames(insts)
+print "@@@@@@@@@@@@@@@@@@@@@@@@@ After propagateArgNames()\n"
+#Utah
+for jin2 in insts:
+    print jin2
+#Utah
 insts = groupPhis(insts)
+print "^^^^^^^^^^^^^^^^^^^^^^^ After groupPhis()\n"
+#Utah
+for jin3 in insts:
+    print jin3
+#Utah
 insts = rewriteRegs(insts)
+print "*********************** After rewriteRegs()\n"
+#Utah
+for jin4 in insts:
+    print jin4
+#Utah
 
 assert cand, "cand inst not found"
 
 printFuncHeader()
 printFuncBody(insts)
 printPCs()
+print "\nend printPCs\n"
 printLHSFuncFooter()
