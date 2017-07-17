@@ -27,6 +27,7 @@ cnt = 0
 cnt2 = 0
 cnt3 = 0
 independent = []
+flagPC = 0
 
 # souper IR -> LLVM inst map
 instmap = {
@@ -229,16 +230,31 @@ def propagateArgNames(insts):
                 #Jubi
                 #assert len(ops) == 1, "one mask expected, got %d" % len(ops)
                 assert len(ops) <= 3, "atmost three dataflow facts expected, got %d" % len(ops)
-                if "0" in ops[0] or "1" in ops[0] or "x" in ops[0]:
-                    parseKnownBits(ops[0],newreg)
-                elif "n" in ops[0] or "z" in ops[0] or "2" in ops[0]:
-                    parseNZP(ops[0], newreg, int(widthValue))
-                elif "0" in ops[1] or "1" in ops[1] or "x" in ops[1]:
-                    parseKnownBits(ops[1], newreg)
-                elif "n" in ops[1] or "z" in ops[1] or "2" in ops[1]:
-                    parseNZP(ops[1], newreg, int(widthValue))
-                elif "0" in ops[2] or "1" in ops[2] or "x" in ops[2]:
-                    parseKnownBits(ops[2], newreg)
+                if len(ops) == 1:
+                    if "0" in ops[0] or "1" in ops[0] or "x" in ops[0]:
+                        parseKnownBits(ops[0],newreg)
+                    elif "n" in ops[0] or "z" in ops[0] or "2" in ops[0]:
+                        parseNZP(ops[0], newreg, int(widthValue))
+                elif len(ops) == 2:
+                    if "0" in ops[0] or "1" in ops[0] or "x" in ops[0]:
+                        parseKnownBits(ops[0],newreg)
+                    elif "n" in ops[0] or "z" in ops[0] or "2" in ops[0]:
+                        parseNZP(ops[0], newreg, int(widthValue))
+                    elif "0" in ops[1] or "1" in ops[1] or "x" in ops[1]:
+                        parseKnownBits(ops[1], newreg)
+                    elif "n" in ops[1] or "z" in ops[1] or "2" in ops[1]:
+                        parseNZP(ops[1], newreg, int(widthValue))
+                elif len(ops) == 3:
+                    if "0" in ops[0] or "1" in ops[0] or "x" in ops[0]:
+                        parseKnownBits(ops[0],newreg)
+                    elif "n" in ops[0] or "z" in ops[0] or "2" in ops[0]:
+                        parseNZP(ops[0], newreg, int(widthValue))
+                    elif "0" in ops[1] or "1" in ops[1] or "x" in ops[1]:
+                        parseKnownBits(ops[1], newreg)
+                    elif "n" in ops[1] or "z" in ops[1] or "2" in ops[1]:
+                        parseNZP(ops[1], newreg, int(widthValue))
+                    elif "0" in ops[2] or "1" in ops[2] or "x" in ops[2]:
+                        parseKnownBits(ops[2], newreg)
             counter += 1
             continue
         for k, op in enumerate(ops):
@@ -352,6 +368,8 @@ def rewriteRegs(insts):
                 pcmap[newreg].append(pc)
             else:
                 pcmap[newreg] = [pc]
+            global flagPC
+            flagPC = 1
             continue
         # give regs new names
         newreg = "%" + str(counter)
@@ -384,10 +402,13 @@ def rewriteRegs(insts):
                                           + str(len(intrdecl))
                     intrdecl[inst+width] = decl
             # Separate the instructions not dependent on branch condition
-            if not pcmap:
-                res.append(newinst)
+            if flagPC==1 and len(pcmap)>0:
+                independent.append([newinst])
+                flagPC = 0
+            elif flagPC==0 and len(pcmap)>0:
+                independent[-1].append(newinst)
             else:
-                independent.append(newinst)
+                res.append(newinst)
     return res
 
 def rewriteOps(inst, newregs, ops):
@@ -499,23 +520,31 @@ def printFuncBody(insts):
         print translateInstToLLVM(i)
 
 def printPCs():
-    for reg, pcs in pcmap.items():
+    combinedList = dict()
+    for reg, pcs in zip(reversed(pcmap.keys()), independent):
+        combinedList[reg] = pcs
+    for reg, pcs in reversed(pcmap.items()):
         global cnt
         global cnt2
+        global cnt3
         s = ""
         for k, pc in enumerate(pcs):
             s += "  %tmp" + str(cnt) + " = icmp eq " + widths[pc[0]] + " " \
                          + pc[3][0][0] + ", " + pc[0] + "\n"
             s += "  br i1 %tmp" + str(cnt) + ", label %cont" + str(cnt2) \
-                                + ", label %out\n"
-            s += "out:\n"
-            s += "  ret " + cand[1] + " 0\n"
+                                + ", label %out" + str(cnt3) +"\n"
+            s += "out" + str(cnt3) + ":" + "\n"
+            #s += "  ret " + cand[1] + " 0\n"
+            s += "  unreachable\n"
             s += "cont" + str(cnt2) + ":"
             if k < len(pcs)-1:
                 s += "\n"
             cnt += 1
             cnt2 += 1
-        print s
+            cnt3 += 1
+            print s
+            for i in combinedList[reg]:
+                print translateInstToLLVM(i)
 
 def printFuncFooter():
     assert cand, "there must be a candidate"
@@ -536,8 +565,6 @@ def printFuncFooter():
     print "}"
 
 def printLHSFuncFooter():
-    for i in independent:
-        print translateInstToLLVM(i)
     print "  ret " + cand[1] + " " + cand[0]
     print "}"
 
