@@ -15,9 +15,11 @@
 # limitations under the License.
 
 import fileinput, sys, copy
+import collections
 
 widths, knownzeros, knownones, nonNegative = dict(), dict(), dict(), dict()
-pcmap, argmap = dict(), dict()
+pcmap = collections.OrderedDict()
+argmap = dict()
 cand = None
 needsResult = False
 intrdecl = dict()
@@ -521,9 +523,9 @@ def printFuncBody(insts):
 
 def printPCs():
     combinedList = dict()
-    for reg, pcs in zip(reversed(pcmap.keys()), independent):
+    for reg, pcs in zip(pcmap.keys(), independent):
         combinedList[reg] = pcs
-    for reg, pcs in reversed(pcmap.items()):
+    for reg, pcs in pcmap.items():
         global cnt
         global cnt2
         global cnt3
@@ -543,8 +545,9 @@ def printPCs():
             cnt2 += 1
             cnt3 += 1
             print s
-            for i in combinedList[reg]:
-                print translateInstToLLVM(i)
+            if reg in combinedList:
+                for i in combinedList[reg]:
+                    print translateInstToLLVM(i)
 
 def printFuncFooter():
     assert cand, "there must be a candidate"
