@@ -95,7 +95,7 @@ public:
     unsigned W = LHS->Width;
     Ones = APInt::getNullValue(W);
     Zeros = APInt::getNullValue(W);
-    for (unsigned I=0; I<W; I++) {
+    for (int I=W-1; I>=0; I--) {
       APInt ZeroGuess = Zeros | APInt::getOneBitSet(W, I);
       if (testKnown(BPCs, PCs, ZeroGuess, Ones, LHS, IC)) {
         Zeros = ZeroGuess;
