@@ -85,11 +85,15 @@ TEST(ParserTest, Errors) {
       { "%0:i4 = var (xxx)\n",
         "<input>:1:1: knownbits pattern must be of same length as var width" },
       { "%0:i4 = var ()\n",
-        "<input>:1:14: invalid, expected [0|1|x]+ or [n|z|2|-]" },
+        "<input>:1:14: invalid, expected [0|1|x]+ or [n|z|2|-] or s=[0-9]+" },
       { "%0:i4 = var (10x0\n",
         "<input>:1:18: invalid knownbits string" },
       { "%0:i4 = var (10\nx0)\n",
         "<input>:1:16: invalid knownbits string" },
+      { "%0:i33 = ssub.with.overflow 0, 1\n"
+        "%1:i1 = extractvalue %0, 1:i32\n"
+        "infer %1\n",
+        "<input>:1:1: at least one operand must be typed" },
       { "%0:i65 = var ; 0\n%1:i1 = extractvalue %0, 1:i32\n"
         "%2:i64 = extractvalue %0, 0:i32\n"
         "%3:i64 = select %1, 18446744073709551615:i64, %2\n"
@@ -104,7 +108,7 @@ TEST(ParserTest, Errors) {
       { "%0:i4 = var (0011 (zn)\n",
         "<input>:1:18: invalid knownbits string" },
       { "%0:i4 = var (a)\n",
-        "<input>:1:14: invalid, expected [0|1|x]+ or [n|z|2|-]" },
+        "<input>:1:14: invalid, expected [0|1|x]+ or [n|z|2|-] or s=[0-9]+" },
       { "%0:i4 = var (zn2\n",
         "<input>:1:17: invalid more knownbits string" },
       { "%0:i8 = var (zn22)\n",
@@ -113,6 +117,24 @@ TEST(ParserTest, Errors) {
         "<input>:1:15: invalid more knownbits string" },
       { "%0:i4 = var (-\n",
         "<input>:1:15: invalid more knownbits string" },
+      { "%0:i8 = var (s)\n",
+        "<input>:1:15: expected '=' for number of sign bits" },
+      { "%0:i8 = var (s=-1)\n",
+        "<input>:1:16: expected integer value for number of sign bits" },
+      { "%0:i8 = var (s=t)\n",
+        "<input>:1:16: expected integer value for number of sign bits" },
+      { "%0:i8 = var (s=0)\n",
+        "<input>:1:16: number of sign bits must be more than 0" },
+      { "%0:i8 = var (s=2\n",
+        "<input>:1:17: invalid number of sign bits string" },
+      { "%0:i8 = var (s=9)\n",
+        "<input>:1:1: number of sign bits can't exceed instruction width" },
+      { "%0:i8 = var (0001xxxx) (s=3\n",
+        "<input>:1:28: invalid number of sign bits string" },
+      { "%0:i8 = var (s=3) (nz2\n",
+        "<input>:1:23: invalid more knownbits string" },
+      { "%0:i8 = var (nz2) (s=3\n",
+        "<input>:1:23: invalid number of sign bits string" },
 
       // type checking
       { "%0 = add 1:i32\n",
