@@ -15,9 +15,11 @@
 # limitations under the License.
 
 import fileinput, sys, copy
+import collections
 
-widths, nonNegative = dict(), dict()
-pcmap, argmap = dict(), dict()
+widths, knownzeros, knownones, nonNegative = dict(), dict(), dict(), dict()
+pcmap = collections.OrderedDict()
+argmap = dict()
 cand = None
 needsResult = False
 intrdecl = dict()
@@ -26,6 +28,8 @@ labels = ["foo0"]
 cnt = 0
 cnt2 = 0
 cnt3 = 0
+independent = []
+flagPC = 0
 
 # souper IR -> LLVM inst map
 instmap = {
@@ -225,15 +229,83 @@ def propagateArgNames(insts):
             widths[newreg] = width
             widthValue = width.strip("i")
             if len(ops):
-                assert len(ops) <= 2, "atmost two masks expected, got %d" % len(ops)
+                #Jubi
+                #assert len(ops) == 1, "one mask expected, got %d" % len(ops)
+#                assert len(ops) <= 3, "atmost three dataflow facts expected, got %d" % len(ops)
+#                if len(ops) == 1:
+#                    if "0" in ops[0] or "1" in ops[0] or "x" in ops[0]:
+#                        parseKnownBits(ops[0],newreg)
+#                    elif "negative" in ops[0]:
+#                        parseNegative(ops[0], newreg, int(widthValue))
+#                elif len(ops) == 2:
+#                    if "0" in ops[0] or "1" in ops[0] or "x" in ops[0]:
+#                        parseKnownBits(ops[0],newreg)
+#                    elif "negative" in ops[0]:
+#                        parseNegative(ops[0], newreg, int(widthValue))
+#                    elif "0" in ops[1] or "1" in ops[1] or "x" in ops[1]:
+#                        parseKnownBits(ops[1], newreg)
+#                    elif "negative" in ops[1]:
+#                        parseNegative(ops[1], newreg, int(widthValue))
+#                elif len(ops) == 3:
+#                    if "0" in ops[0] or "1" in ops[0] or "x" in ops[0]:
+#                        parseKnownBits(ops[0],newreg)
+#                    elif "negative" in ops[0]:
+#                        parseNegative(ops[0], newreg, int(widthValue))
+#                    elif "0" in ops[1] or "1" in ops[1] or "x" in ops[1]:
+#                        parseKnownBits(ops[1], newreg)
+#                    elif "negative" in ops[1]:
+#                        parseNegative(ops[1], newreg, int(widthValue))
+#                    elif "0" in ops[2] or "1" in ops[2] or "x" in ops[2]:
+#                        parseKnownBits(ops[2], newreg)
+                assert len(ops) <= 6, "atmost six dataflow facts expected, got %d" % len(ops)
                 if len(ops) == 1:
-                    if "n" in ops[0] or "z" in ops[0] or "p" in ops[0]:
-                        parseNZP(ops[0], newreg, int(widthValue))
+                    if "nonNegative" in ops[0]:
+                        parseNonNegative(ops[0], newreg, int(widthValue))
                 elif len(ops) == 2:
-                    if "n" in ops[0] or "z" in ops[0] or "p" in ops[0]:
-                        parseNZP(ops[0], newreg, int(widthValue))
-                    elif "n" in ops[1] or "z" in ops[1] or "p" in ops[1]:
-                        parseNZP(ops[1], newreg, int(widthValue))
+                    if "nonNegative" in ops[0]:
+                        parseNonNegative(ops[0], newreg, int(widthValue))
+                    elif "nonNegative" in ops[1]:
+                        parseNonNegative(ops[1], newreg, int(widthValue))
+                elif len(ops) == 3:
+                    if "nonNegative" in ops[0]:
+                        parseNonNegative(ops[0], newreg, int(widthValue))
+                    elif "nonNegative" in ops[1]:
+                        parseNonNegative(ops[1], newreg, int(widthValue))
+                    elif "nonNegative" in ops[2]:
+                        parseNonNegative(ops[2], newreg, int(widthValue))
+                elif len(ops) == 4:
+                    if "nonNegative" in ops[0]:
+                        parseNonNegative(ops[0], newreg, int(widthValue))
+                    elif "nonNegative" in ops[1]:
+                        parseNonNegative(ops[1], newreg, int(widthValue))
+                    elif "nonNegative" in ops[2]:
+                        parseNonNegative(ops[2], newreg, int(widthValue))
+                    elif "nonNegative" in ops[3]:
+                        parseNonNegative(ops[3], newreg, int(widthValue))
+                elif len(ops) == 5:
+                    if "nonNegative" in ops[0]:
+                        parseNonNegative(ops[0], newreg, int(widthValue))
+                    elif "nonNegative" in ops[1]:
+                        parseNonNegative(ops[1], newreg, int(widthValue))
+                    elif "nonNegative" in ops[2]:
+                        parseNonNegative(ops[2], newreg, int(widthValue))
+                    elif "nonNegative" in ops[3]:
+                        parseNonNegative(ops[3], newreg, int(widthValue))
+                    elif "nonNegative" in ops[4]:
+                        parseNonNegative(ops[4], newreg, int(widthValue))
+                elif len(ops) == 6:
+                    if "nonNegative" in ops[0]:
+                        parseNonNegative(ops[0], newreg, int(widthValue))
+                    elif "nonNegative" in ops[1]:
+                        parseNonNegative(ops[1], newreg, int(widthValue))
+                    elif "nonNegative" in ops[2]:
+                        parseNonNegative(ops[2], newreg, int(widthValue))
+                    elif "nonNegative" in ops[3]:
+                        parseNonNegative(ops[3], newreg, int(widthValue))
+                    elif "nonNegative" in ops[4]:
+                        parseNonNegative(ops[4], newreg, int(widthValue))
+                    elif "nonNegative" in ops[5]:
+                        parseNonNegative(ops[5], newreg, int(widthValue))
             counter += 1
             continue
         for k, op in enumerate(ops):
@@ -347,6 +419,8 @@ def rewriteRegs(insts):
                 pcmap[newreg].append(pc)
             else:
                 pcmap[newreg] = [pc]
+            global flagPC
+            flagPC = 1
             continue
         # give regs new names
         newreg = "%" + str(counter)
@@ -378,7 +452,14 @@ def rewriteRegs(insts):
                                           + width + "(" + width + ") #" \
                                           + str(len(intrdecl))
                     intrdecl[inst+width] = decl
-            res.append(newinst)
+            # Separate the instructions not dependent on branch condition
+            if flagPC==1 and len(pcmap)>0:
+                independent.append([newinst])
+                flagPC = 0
+            elif flagPC==0 and len(pcmap)>0:
+                independent[-1].append(newinst)
+            else:
+                res.append(newinst)
     return res
 
 def rewriteOps(inst, newregs, ops):
@@ -390,23 +471,50 @@ def rewriteOps(inst, newregs, ops):
            assert op[0] in newregs, "unknown reg %s, reordering bug in %s" % (op[0], i)
            ops[j][0] = newregs[op[0]]
 
-def parseNZP(s,reg, width):
+def parseKnownBits(s,reg):
+    assert "(" in s and ")" in s
+    #s = s.strip("(").strip(")").strip("knownBits=")
+    s = s.strip("(").strip(")")
+    zeromask = 0
+    onemask = 0
+    all = 0
+    bit = 0
+    for c in s[::-1]:
+        all += 1<<bit
+        if c == '0':
+            zeromask += 1<<bit
+        if c == '1':
+            onemask += 1<<bit
+        bit += 1
+    print "; for " + str(bit) + " bit value " + s
+    if zeromask != 0:
+        knownzeros[reg] = zeromask ^ all
+        print ";   val = val & " + str(zeromask ^ all)
+    else:
+        print ";   no zero mask needed"
+    if onemask != 0:
+        knownones[reg] = onemask
+        print ";   val = val | " + str(onemask)
+    else:
+        print ";   no one mask needed"
+    print
+
+def parseNonNegative(s,reg, width):
     assert "(" in s and ")" in s
     s = s.strip("(").strip(")")
-    nonNegativeMask = 0
+    NonNegativeMask = 0
     bit = 0
-    for c in s[::]:
-        if c == 'n':
-            while (bit < width-1):
-                nonNegativeMask += 1<<bit
-                bit += 1
-            print "; for " + str(bit) + " bit value " + s
-            if nonNegativeMask != 0:
-                nonNegative[reg] = nonNegativeMask
-                print ";   val = val & " + str(nonNegativeMask)
-            else:
-                print ";   no non negative mask needed"
-            print
+    if s == "nonNegative":
+        while (bit < width-1):
+            NonNegativeMask += 1<<bit
+            bit += 1
+        print "; for " + str(bit) + " bit value " + s
+        if NonNegativeMask != 0:
+            nonNegative[reg] = NonNegativeMask
+            print ";   val = val & " + str(NonNegativeMask)
+        else:
+            print ";   no nonNegative mask needed"
+        print
 
 def printFuncHeader():
     regtmps = {}
@@ -414,6 +522,23 @@ def printFuncHeader():
         regtmps[reg] = reg
     masks = ""
     for i, reg in enumerate(argmap.values()):
+        if reg in knownzeros:
+            regnum = reg[1:]
+            w = widths[reg]
+            old = regtmps[reg]
+            name = "%t1_" + regnum
+            regtmps[reg] = name
+            masks = "  " + old + " = and " + w + " " + name + ", " + str(knownzeros[reg]) + "\n" +\
+            "  store " + w + " " + old + ", " + w + "* @glob_" + regnum + "_and\n" + masks
+            regtmps[reg] = name
+        if reg in knownones:
+            regnum = reg[1:]
+            w = widths[reg]
+            old = regtmps[reg]
+            name = "%t2_" + regnum
+            regtmps[reg] = name
+            masks = "  " + old + " = or " + w + " " + name + ", " + str(knownones[reg]) + "\n" +\
+            "  store " + w + " " + old + ", " + w + "* @glob_" + regnum + "_or\n" + masks
         if reg in nonNegative:
             regnum = reg[1:]
             w = widths[reg]
@@ -425,6 +550,8 @@ def printFuncHeader():
     # global declarations: dummy store, intrinsics
     print "target datalayout = \"e-m:e-i64:64-f80:128-n8:16:32:64-S128\"\n"
     for i, reg in enumerate(argmap.values()):
+        print "@glob_" + reg[1:] + "_and = external global " + widths[reg]
+        print "@glob_" + reg[1:] + "_or = external global " + widths[reg]
         print "@glob_" + reg[1:] + "_nonNegative = external global " + widths[reg]
     for decl in intrdecl.values():
         print decl
@@ -444,21 +571,32 @@ def printFuncBody(insts):
         print translateInstToLLVM(i)
 
 def printPCs():
+    combinedList = dict()
+    for reg, pcs in zip(pcmap.keys(), independent):
+        combinedList[reg] = pcs
     for reg, pcs in pcmap.items():
         global cnt
         global cnt2
+        global cnt3
         s = ""
         for k, pc in enumerate(pcs):
             s += "  %tmp" + str(cnt) + " = icmp eq " + widths[pc[0]] + " " \
                          + pc[3][0][0] + ", " + pc[0] + "\n"
             s += "  br i1 %tmp" + str(cnt) + ", label %cont" + str(cnt2) \
-                                + ", label %out\n"
+                                + ", label %out" + str(cnt3) +"\n"
+            s += "out" + str(cnt3) + ":" + "\n"
+            #s += "  ret " + cand[1] + " 0\n"
+            s += "  unreachable\n"
             s += "cont" + str(cnt2) + ":"
             if k < len(pcs)-1:
                 s += "\n"
             cnt += 1
             cnt2 += 1
-        print s
+            cnt3 += 1
+            print s
+            if reg in combinedList:
+                for i in combinedList[reg]:
+                    print translateInstToLLVM(i)
 
 def printFuncFooter():
     assert cand, "there must be a candidate"

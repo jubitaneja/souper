@@ -48,7 +48,7 @@ static llvm::cl::opt<bool> HarvestDataFlowFacts(
     llvm::cl::init(true));
 static llvm::cl::opt<bool> PrintKnownAtReturn(
     "print-known-at-return",
-    llvm::cl::desc("Print known bits in each value returned from a function (default=false)"),
+    llvm::cl::desc("Print known data flow fact in each value returned from a function (default=false)"),
     llvm::cl::init(false));
 
 using namespace llvm;
@@ -725,7 +725,10 @@ void ExtractExprCandidates(Function &F, const LoopInfo *LI,
         auto DL = F.getParent()->getDataLayout();
         bool NonNegative = 0;
         NonNegative = isKnownNonNegative(V, DL);
-        llvm::outs() << "known at return: " << Inst::getMoreKnownBitsString(0, NonNegative, 0, 0) << "\n";
+        if (NonNegative)
+          llvm::outs() << "known at return: " << "(nonNegative)" << "\n";
+        else
+          llvm::outs() << "known at return: " << "" << "\n";
       }
       if (I.getType()->isIntegerTy())
         BCS->Replacements.emplace_back(&I, InstMapping(EB.get(&I), 0));

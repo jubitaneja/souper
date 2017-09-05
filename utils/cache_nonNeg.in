@@ -66,7 +66,7 @@ sub souper_known ($) {
     (my $fh, my $tmpfn) = File::Temp::tempfile();
     print $fh $opt;
     $fh->flush();
-    my $arg = "-infer-nzp -souper-exploit-ub=false -infer-rhs -solver-timeout=30";    
+    my $arg = "-infer-nonNeg -souper-exploit-ub=false -infer-rhs -solver-timeout=30";    
     my $cmd = "${check} $solver $arg < $tmpfn 2>/dev/null |";
     # print "<${cmd}>\n";
     open INF, $cmd;
@@ -253,10 +253,10 @@ sub go($) {
 	$print = 1;
 	my $llvm_stronger = 0;
 	my $souper_stronger = 0;
-        if ($sk eq "n") {
+        if ($sk eq "nonNegative") {
             $souper_stronger = 1;
         }
-        if ($lk eq "n") {
+        if ($lk eq "nonNegative") {
             $llvm_stronger = 1;
         }
 	if ($llvm_stronger && $souper_stronger) {
@@ -297,7 +297,7 @@ sub wait_for_one() {
     $num_running--;
 }
 
-foreach my $opt (sort bylen keys %toprint) {
+foreach my $opt (sort bysprofile keys %toprint) {
     wait_for_one() unless $num_running < $NPROCS;
     die unless $num_running < $NPROCS;
     my $pid = fork();
