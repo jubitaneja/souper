@@ -225,6 +225,24 @@ if ($souper) {
     if (exists $ENV{"SOUPER_NO_HARVEST_DATAFLOW_FACTS"}) {
         push @ARGV, ("-mllvm", "-souper-harvest-dataflow-facts=false");
     }
+    if (exists $ENV{"SOUPER_HARVEST_KNOWN_BITS"}) {
+        push @ARGV, ("-mllvm", "-souper-harvest-known-bits");
+    }
+    if (exists $ENV{"SOUPER_NO_HARVEST_NON_ZERO"}) {
+        push @ARGV, ("-mllvm", "-souper-harvest-non-zero");
+    }
+    if (exists $ENV{"SOUPER_NO_HARVEST_NON_NEGATIVE"}) {
+        push @ARGV, ("-mllvm", "-souper-harvest-non-negative");
+    }
+    if (exists $ENV{"SOUPER_NO_HARVEST_NEGATIVE"}) {
+        push @ARGV, ("-mllvm", "-souper-harvest-negative");
+    }
+    if (exists $ENV{"SOUPER_NO_HARVEST_POWER_TWO"}) {
+        push @ARGV, ("-mllvm", "-souper-harvest-power-two");
+    }
+    if (exists $ENV{"SOUPER_NO_HARVEST_SIGN_BITS"}) {
+        push @ARGV, ("-mllvm", "-souper-harvest-sign-bits");
+    }
     if (exists $ENV{"SOUPER_HARVEST_DEMANDED_BITS"}) {
         push @ARGV, ("-mllvm", "-souper-harvest-demanded-bits");
     }

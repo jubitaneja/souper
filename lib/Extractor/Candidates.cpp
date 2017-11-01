@@ -46,6 +46,30 @@ static llvm::cl::opt<bool> HarvestDataFlowFacts(
     "souper-harvest-dataflow-facts",
     llvm::cl::desc("Perform data flow analysis (default=true)"),
     llvm::cl::init(true));
+static llvm::cl::opt<bool> HarvestKnownBits(
+    "souper-harvest-known-bits",
+    llvm::cl::desc("Perform data flow analysis (default=false)"),
+    llvm::cl::init(false));
+static llvm::cl::opt<bool> HarvestNonZero(
+    "souper-harvest-non-zero",
+    llvm::cl::desc("Perform data flow analysis (default=false)"),
+    llvm::cl::init(false));
+static llvm::cl::opt<bool> HarvestNonNegative(
+    "souper-harvest-non-negative",
+    llvm::cl::desc("Perform data flow analysis (default=false)"),
+    llvm::cl::init(false));
+static llvm::cl::opt<bool> HarvestNegative(
+    "souper-harvest-negative",
+    llvm::cl::desc("Perform data flow analysis (default=false)"),
+    llvm::cl::init(false));
+static llvm::cl::opt<bool> HarvestPowerTwo(
+    "souper-harvest-power-two",
+    llvm::cl::desc("Perform data flow analysis (default=false)"),
+    llvm::cl::init(false));
+static llvm::cl::opt<bool> HarvestSignBits(
+    "souper-harvest-sign-bits",
+    llvm::cl::desc("Perform data flow analysis (default=false)"),
+    llvm::cl::init(false));
 static llvm::cl::opt<bool> HarvestDemandedBits(
     "souper-harvest-demanded-bits",
     llvm::cl::desc("Perform demanded bits analysis (default=false)"),
@@ -166,14 +190,20 @@ Inst *ExprBuilder::makeArrayRead(Value *V) {
   KnownBits Known(Width);
   bool NonZero = false, NonNegative = false, PowOfTwo = false, Negative = false;
   unsigned NumSignBits = 1;
-  if (HarvestDataFlowFacts)
+  //if (HarvestDataFlowFacts)
     if (V->getType()->isIntOrIntVectorTy() ||
         V->getType()->getScalarType()->isPointerTy()) {
+    if (HarvestKnownBits)
       computeKnownBits(V, Known, DL);
+    if (HarvestNonZero)
       NonZero = isKnownNonZero(V, DL);
+    if (HarvestNonNegative)
       NonNegative = isKnownNonNegative(V, DL);
+    if (HarvestPowerTwo)
       PowOfTwo = isKnownToBeAPowerOfTwo(V, DL);
+    if (HarvestNegative)
       Negative = isKnownNegative(V, DL);
+    if (HarvestSignBits)
       NumSignBits = ComputeNumSignBits(V, DL);
     }
   return IC.createVar(Width, Name, Known.Zero, Known.One, NonZero, NonNegative,
