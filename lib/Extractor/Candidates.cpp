@@ -74,6 +74,10 @@ static llvm::cl::opt<bool> PrintSignBitsAtReturn(
     "print-sign-bits-at-return",
     llvm::cl::desc("Print sign bits dfa in each value returned from a function (default=false)"),
     llvm::cl::init(false));
+static llvm::cl::opt<bool> PrintDemandedBits(
+    "print-demanded-bits",
+    llvm::cl::desc("Print demanded bits (default=false)"),
+    llvm::cl::init(false));
 
 
 using namespace llvm;
@@ -201,6 +205,12 @@ Inst *ExprBuilder::makeArrayRead(Value *V) {
       Negative = isKnownNegative(V, DL);
       NumSignBits = ComputeNumSignBits(V, DL);
     }
+  if (PrintDemandedBits) {
+    APInt DemandedBitsVal = APInt::getAllOnesValue(Width);
+    if (Instruction *I = dyn_cast<Instruction>(V))
+      DemandedBitsVal = DB->getDemandedBits(I);
+    llvm::outs() << "known at return: " << Inst::getDemandedBitsString(DemandedBitsVal) << "\n";
+  }
   return IC.createVar(Width, Name, Known.Zero, Known.One, NonZero, NonNegative,
                       PowOfTwo, Negative, NumSignBits);
 }
@@ -807,7 +817,6 @@ void ExtractExprCandidates(Function &F, const LoopInfo *LI, DemandedBits *DB,
         else
           llvm::outs() << "known at return: " << "" << "\n";
       }
-      //NumSignBits = ComputeNumSignBits(V, DL);
       if (I.getType()->isIntegerTy())
         BCS->Replacements.emplace_back(&I, InstMapping(EB.get(&I), 0));
     }
