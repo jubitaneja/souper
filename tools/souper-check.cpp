@@ -51,6 +51,10 @@ static cl::opt<bool> InferSignBits("infer-sign-bits",
     cl::desc("Compute sign bits for the candidate (default=false)"),
     cl::init(false));
 
+static cl::opt<bool> InferDemandedBits("infer-demanded-bits",
+    cl::desc("Compute demanded bits for the candidate (default=false)"),
+    cl::init(false));
+
 static cl::opt<bool> PrintRepl("print-replacement",
     cl::desc("Print the replacement, if valid (default=false)"),
     cl::init(false));
@@ -175,6 +179,17 @@ int SolveInst(const MemoryBufferRef &MB, Solver *S) {
       s = std::to_string(SignBits);
     else
       s = "";
+    llvm::outs() << "known from souper: " << s << "\n";
+    return 0;
+  }
+
+  if (InferDemandedBits) {
+    APInt DB;
+    if (std::error_code EC = S->testDemandedBits(Rep.BPCs, Rep.PCs, Rep.Mapping.LHS,
+                                          DB, IC)) {
+      llvm::errs() << EC.message() << '\n';
+    }
+    std::string s = Inst::getDemandedBitsString(DB);
     llvm::outs() << "known from souper: " << s << "\n";
     return 0;
   }
