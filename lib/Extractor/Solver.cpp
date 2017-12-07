@@ -264,6 +264,26 @@ public:
     return std::error_code();
   }
 
+  std::error_code testDemandedBits(const BlockPCs &BPCs,
+                           const std::vector<InstMapping> &PCs,
+                           Inst *LHS, APInt &DB,
+                           InstContext &IC) override {
+    unsigned W = LHS->Width;
+    Ones = APInt::getNullValue(W);
+    Zeros = APInt::getNullValue(W);
+    for (unsigned I=0; I<W; I++) {
+      APInt ZeroGuess = Zeros | APInt::getOneBitSet(W, I);
+      if (testKnown(BPCs, PCs, ZeroGuess, Ones, LHS, IC)) {
+        Zeros = ZeroGuess;
+        continue;
+      } else {
+        APInt OneGuess = Ones | APInt::getOneBitSet(W, I);
+        Ones = OneGuess;
+    }
+    DB = Ones;
+    return std::error_code();
+  }
+
   std::error_code infer(const BlockPCs &BPCs,
                         const std::vector<InstMapping> &PCs,
                         Inst *LHS, Inst *&RHS, InstContext &IC) override {
@@ -508,6 +528,13 @@ public:
     return UnderlyingSolver->powerTwo(BPCs, PCs, LHS, PowerTwo, IC);
   }
 
+  std::error_code testDemandedBits(const BlockPCs &BPCs,
+                            const std::vector<InstMapping> &PCs,
+                            Inst *LHS, APInt &DB,
+                            InstContext &IC) override {
+    return UnderlyingSolver->testDemandedBits(BPCs, PCs, LHS, DB, IC);
+  }
+
   std::error_code nonZero(const BlockPCs &BPCs,
                             const std::vector<InstMapping> &PCs,
                             Inst *LHS, APInt &NonZero,
@@ -610,6 +637,13 @@ public:
                             Inst *LHS, APInt &PowerTwo,
                             InstContext &IC) override {
     return UnderlyingSolver->powerTwo(BPCs, PCs, LHS, PowerTwo, IC);
+  }
+
+  std::error_code testDemandedBits(const BlockPCs &BPCs,
+                            const std::vector<InstMapping> &PCs,
+                            Inst *LHS, APInt &DB,
+                            InstContext &IC) override {
+    return UnderlyingSolver->testDemandedBits(BPCs, PCs, LHS, DB, IC);
   }
 
   std::error_code nonZero(const BlockPCs &BPCs,
