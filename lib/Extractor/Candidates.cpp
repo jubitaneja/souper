@@ -75,7 +75,7 @@ static llvm::cl::opt<bool> PrintSignBitsAtReturn(
     llvm::cl::desc("Print sign bits dfa in each value returned from a function (default=false)"),
     llvm::cl::init(false));
 static llvm::cl::opt<bool> PrintDemandedBits(
-    "print-demanded-bits",
+    "print-demanded-bits-at-return",
     llvm::cl::desc("Print demanded bits (default=false)"),
     llvm::cl::init(false));
 

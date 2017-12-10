@@ -279,6 +279,7 @@ public:
       } else {
         APInt OneGuess = Ones | APInt::getOneBitSet(W, I);
         Ones = OneGuess;
+      }
     }
     DB = Ones;
     return std::error_code();
