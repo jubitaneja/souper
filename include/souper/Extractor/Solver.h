@@ -63,14 +63,14 @@ public:
                             Inst *LHS, llvm::APInt &NonZero,
                             InstContext &IC) = 0;
   virtual
-  std::error_code signBits(const BlockPCs &BPCs,
-                            const std::vector<InstMapping> &PCs,
-                            Inst *LHS, unsigned &SignBits,
-                            InstContext &IC) = 0;
-  virtual
   std::error_code testDemandedBits(const BlockPCs &BPCs,
                             const std::vector<InstMapping> &PCs,
                             Inst *LHS, llvm::APInt &DB,
+                            InstContext &IC) = 0;
+  virtual
+  std::error_code signBits(const BlockPCs &BPCs,
+                            const std::vector<InstMapping> &PCs,
+                            Inst *LHS, unsigned &SignBits,
                             InstContext &IC) = 0;
 };
 

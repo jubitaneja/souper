@@ -265,12 +265,12 @@ public:
   }
 
   std::error_code testDemandedBits(const BlockPCs &BPCs,
-                           const std::vector<InstMapping> &PCs,
-                           Inst *LHS, APInt &DB,
-                           InstContext &IC) override {
+                              const std::vector<InstMapping> &PCs,
+                              Inst *LHS, APInt &DB,
+                              InstContext &IC) override {
     unsigned W = LHS->Width;
-    Ones = APInt::getNullValue(W);
-    Zeros = APInt::getNullValue(W);
+    APInt Ones = APInt::getNullValue(W);
+    APInt Zeros = APInt::getNullValue(W);
     for (unsigned I=0; I<W; I++) {
       APInt ZeroGuess = Zeros | APInt::getOneBitSet(W, I);
       if (testKnown(BPCs, PCs, ZeroGuess, Ones, LHS, IC)) {
