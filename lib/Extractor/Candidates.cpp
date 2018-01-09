@@ -817,6 +817,16 @@ void ExtractExprCandidates(Function &F, const LoopInfo *LI, DemandedBits *DB,
         else
           llvm::outs() << "known at return: " << "" << "\n";
       }
+      #if 0
+      if (PrintDemandedBits && isa<ReturnInst>(I)) {
+        auto V = I.getOperand(0);
+        auto DL = F.getParent()->getDataLayout();
+        unsigned Width = DL.getTypeSizeInBits(V->getType());
+        APInt DemandedBitsVal = APInt::getAllOnesValue(Width);
+        DemandedBitsVal = DB->getDemandedBits(&I);
+        llvm::outs() << "known at return: " << Inst::getDemandedBitsString(DemandedBitsVal) << "\n";
+      }
+      #endif
       if (I.getType()->isIntegerTy())
         BCS->Replacements.emplace_back(&I, InstMapping(EB.get(&I), 0));
     }

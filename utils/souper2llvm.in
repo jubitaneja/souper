@@ -17,7 +17,7 @@
 import fileinput, sys, copy
 import collections
 
-widths, knownzeros, knownones, Negative, nonNegative, powerTwo, nonZero, signBits = dict(), dict(), dict(), dict(), dict(), dict(), dict(), dict()
+widths, knownzeros, knownones, Negative, nonNegative, powerTwo, nonZero, signBits, dbits = dict(), dict(), dict(), dict(), dict(), dict(), dict(), dict(), dict()
 pcmap = collections.OrderedDict()
 argmap = dict()
 cand = None
@@ -28,6 +28,7 @@ labels = ["foo0"]
 cnt = 0
 cnt2 = 0
 cnt3 = 0
+db_counter = 0
 independent = []
 flagPC = 0
 MDRangePtr = 0
@@ -96,7 +97,12 @@ def parseInst(i):
         inst = i[0]
         reg = i[1]
         width = widths[reg]
-        ops = []
+        #ops = []
+        #demandedbits
+        if len(i) == 3:
+            ops = i[2:]
+        else:
+            ops = []
     elif i[0] == "result":
         assert len(i) == 2, "wrong result inst length %d, %s" % (len(i), i)
         inst = i[0]
@@ -343,6 +349,9 @@ def rewriteRegs(insts):
         elif inst == "infer":
             assert not cand, "cand must be empty"
             cand = [newregs[reg], width, inst, ops]
+            for k in cand[3]:
+                if "demandedBits" in k:
+                    parseDemandedBits(k, cand[0])
             needsResult = True
             break
         elif inst == "result":
@@ -411,6 +420,25 @@ def rewriteOps(inst, newregs, ops):
        elif op[0][0] == "%" and not "%x" in op[0]:
            assert op[0] in newregs, "unknown reg %s, reordering bug in %s" % (op[0], i)
            ops[j][0] = newregs[op[0]]
+
+def parseDemandedBits(s,reg):
+    assert "(" in s and ")" in s and "demandedBits=" in s
+    s = s.strip("(").strip(")").strip("demandedBits=")
+    zeromask = 0
+    all = 0
+    bit = 0
+    for c in s[::-1]:
+        all += 1<<bit
+        if c == '0':
+            zeromask += 1<<bit
+        bit += 1
+    print "; for " + str(bit) + " bit value " + s
+    if zeromask != 0:
+        dbits[reg] = zeromask ^ all
+        print ";   val = val & " + str(zeromask ^ all)
+    else:
+        print ";   no demanded bits mask needed"
+    print
 
 def parseKnownBits(s,reg):
     assert "(" in s and ")" in s and "knownBits=" in s
@@ -578,6 +606,7 @@ def printFuncHeader():
 
     # global declarations: dummy store, intrinsics
     print "target datalayout = \"e-m:e-i64:64-f80:128-n8:16:32:64-S128\"\n"
+    global db_counter
     for i, reg in enumerate(argmap.values()):
         print "@glob_" + reg[1:] + "_and = external global " + widths[reg]
         print "@glob_" + reg[1:] + "_or = external global " + widths[reg]
@@ -586,6 +615,7 @@ def printFuncHeader():
         print "@glob_" + reg[1:] + "_powerOfTwo = external global " + widths[reg]
         print "@glob_" + reg[1:] + "_nonZero = external global " + widths[reg]
         print "@glob_" + reg[1:] + "_signBits = external global " + widths[reg]
+    print "@glob_" + str(db_counter) + "_demandedBits = external global " + widths[reg]
     for decl in intrdecl.values():
         print decl
     print "\ndefine " + cand[1] + " @foo(",
@@ -658,7 +688,20 @@ def printFuncFooter():
     print "}"
 
 def printLHSFuncFooter():
-    print "  ret " + cand[1] + " " + cand[0]
+    if len(cand[3]) > 0:
+        global db_counter
+        for k in cand[3]:
+            if "demandedBits" in k:
+                dbinst = ""
+                dbinst = "  " + "%db" + " = and " + cand[1] + " " + cand[0] + ", " + str(dbits[cand[0]]) + "\n" +\
+                "  store " + cand[1] + " " + "%db" + ", " + cand[1] + "* @glob_" + str(db_counter) + "_demandedBits\n"
+                db_counter += 1
+                print dbinst
+                print "  ret " + cand[1] + " " + "%db"
+            else:
+                print "  ret " + cand[1] + " " + cand[0]
+    else:
+        print "  ret " + cand[1] + " " + cand[0]
     print "}"
 
 lines = readOpt()
