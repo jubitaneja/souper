@@ -567,8 +567,6 @@ def printFuncHeader():
             cnt += 1
             name = "%t1_" + regnum
             regtmps[reg] = name
-            #masks = "  " + old + " = and " + w + " " + name + ", " + str(knownzeros[reg]) + "\n" +\
-            #"  store " + w + " " + old + ", " + w + "* @glob_" + regnum + "_and\n" + masks
             masks = "  " + old + " = and " + w + " " + name + ", " + str(knownzeros[reg]) + "\n" +\
             "  store " + w + " " + old + ", " + w + "* @glob_" + regnum + "_and\n" + masks
             regtmps[reg] = name
@@ -576,11 +574,19 @@ def printFuncHeader():
             dfa = 1
             regnum = reg[1:]
             w = widths[reg]
-            old = regtmps[reg]
+            #old = regtmps[reg]
+            org = regtmps[reg]
+            if regtmps[reg] == reg:
+                old = "%tmp_" + str(cnt)
+                addreg = old
+            else:
+                old = regtmps[reg]
+            cnt += 1
             name = "%t2_" + regnum
             regtmps[reg] = name
             masks = "  " + old + " = or " + w + " " + name + ", " + str(knownones[reg]) + "\n" +\
             "  store " + w + " " + old + ", " + w + "* @glob_" + regnum + "_or\n" + masks
+            regtmps[reg] = name
         if reg in Negative:
             dfa = 1
             regnum = reg[1:]
