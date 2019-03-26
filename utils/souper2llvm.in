@@ -20,6 +20,7 @@ import collections
 widths, knownzeros, knownones, Negative, nonNegative, powerTwo, nonZero, signBits, lower, upper, dbits = dict(), dict(), dict(), dict(), dict(), dict(), dict(), dict(), dict(), dict(), dict()
 pcmap = collections.OrderedDict()
 argmap = dict()
+varmap = dict()
 cand = None
 needsResult = False
 intrdecl = dict()
@@ -235,11 +236,11 @@ def parseInsts(lines):
 
 def propagateArgNames(insts):
     res = []
-    counter = 1
     for i in insts:
         reg, width, inst, ops = i
         if inst == "var":
-            newreg = "%x" + str(counter)
+            newreg = "%var_" + reg[1:]
+            varmap[newreg] = reg
             argmap[reg] = newreg
             widths[newreg] = width
             widthValue = width.strip("i")
@@ -260,7 +261,6 @@ def propagateArgNames(insts):
                         parsesignBits(j, newreg, int(widthValue))
                     elif "range" in j:
                         parseRange(j, newreg, int(widthValue))
-            counter += 1
             continue
         for k, op in enumerate(ops):
             if op[0] in argmap:
@@ -424,7 +424,7 @@ def rewriteOps(inst, newregs, ops):
        # don't change phi's first op, namely the block ref
        if inst == "phi" and j == 0:
            continue
-       elif op[0][0] == "%" and not "%x" in op[0]:
+       elif op[0][0] == "%" and not "%var" in op[0]:
            assert op[0] in newregs, "unknown reg %s, reordering bug in %s" % (op[0], i)
            ops[j][0] = newregs[op[0]]
 
@@ -704,7 +704,7 @@ def printFuncHeader():
             masks = masks + "\n" + "  " + reg + " = add " + widths[reg] + " " + addreg + ", 0" + "\n"
             dfa = 0
         else:
-            addnewreg = "%add_" + reg[1:]
+            addnewreg = "%add_" + varmap[reg][1:]
             regtmps[reg] = addnewreg
             masks = masks + "\n" + "  " + reg + " = add " + widths[reg] + " " + addnewreg + ", 0" + "\n"
 
