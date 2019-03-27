@@ -15,6 +15,7 @@
 #include "llvm/Support/MemoryBuffer.h"
 #include "souper/Parser/Parser.h"
 #include "souper/Tool/GetSolverFromArgs.h"
+#include "souper/Inst/InstGraph.h"
 
 using namespace llvm;
 using namespace souper;
@@ -70,6 +71,10 @@ int SolveInst(const MemoryBufferRef &MB, Solver *S) {
 
   if (ParseOnly || ParseLHSOnly) {
     llvm::outs() << "; parsing successful\n";
+    // spit out the dot format containing the graph
+    for (auto &Rep : Reps) {
+      InstGraph(llvm::outs(), Rep.Mapping.LHS).write();
+    }
     return 0;
   }
 
