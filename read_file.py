@@ -31,6 +31,11 @@ with open("db-result.txt", "r") as read_handle:
           write_handle.write("Error: Both LLVM and Souper cannot handle this case\n")
           continue
 
+        if "%" not in lst[1]:
+          write_handle.write(line)
+          write_handle.write("Error: var does not exist\n")
+          continue
+
         key = lst[1].split('%')
         dummy=key[1]
         souper_dict[dummy] = line
@@ -46,6 +51,11 @@ with open("db-result.txt", "r") as read_handle:
         if "oops" in lst[1]:
           write_handle.write(line)
           write_handle.write("Error: Both LLVM and Souper cannot handle this case\n")
+          continue
+
+        if "%" not in lst[1]:
+          write_handle.write(line)
+          write_handle.write("Error: var does not exist\n")
           continue
 
         key = lst[1].split('%')
