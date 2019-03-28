@@ -78,10 +78,23 @@ public:
   void findVarsAndWidth(Inst *node, std::map<std::string, unsigned> &var_vect) {
     if (node->K == Inst::Var) {
       std::string name = node->Name;
-      var_vect[name] = node->Width;
+      //var_vect[name] = node->Width;
+      var_vect.insert(std::pair<std::string, unsigned>(name, node->Width));
     }
     for (auto const &Op : node->Ops) {
       findVarsAndWidth(Op, var_vect);
+    }
+  }
+
+  void findMoreVarsViaPC(Inst *node,
+                        std::map<std::string, unsigned> &var_vect) {
+    if (node->K == Inst::Var) {
+      std::string name = node->Name;
+      //var_vect[name] = node->Width;
+      var_vect.insert(std::pair<std::string, unsigned>(name, node->Width));
+    }
+    for (auto const &Op : node->Ops) {
+      findMoreVarsViaPC(Op, var_vect);
     }
   }
 
@@ -196,6 +209,11 @@ public:
 
     std::map<std::string, unsigned> vars_vect;
     findVarsAndWidth(LHS, vars_vect);
+
+    for (auto const &PC : PCs) {
+      findMoreVarsViaPC(PC.LHS, vars_vect);
+      findMoreVarsViaPC(PC.RHS, vars_vect);
+    }
 
     // for each var
     for (std::map<std::string,unsigned>::iterator it = vars_vect.begin();
