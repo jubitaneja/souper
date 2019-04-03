@@ -229,8 +229,8 @@ sub bydprofile { $dprofiles{$b} <=> $dprofiles{$a} }
 
 print "\n\n";
 
-sub go($) {
-    (my $opt) = @_;
+sub go {
+    (my $opt, my $counter) = @_;
     my $ret = "";
     $ret .= "$opt";
     $ret .= "\n";
@@ -297,7 +297,14 @@ sub go($) {
 #        $ret .= "; dprofile $h{$k} \"$k\"\n";
 #    }
     $ret .= "------------------------------------------------------\n\n";
-    print $ret if $print;
+#    print $ret if $print;
+    if ($print) {
+        my $fname = 'signbits_' . sprintf("%08d", $counter);
+        open(my $fh, '>', $fname);
+        print $fh $ret;
+        close $fh;
+    }
+
     exit();
 }
 
@@ -310,12 +317,14 @@ sub wait_for_one() {
     $num_running--;
 }
 
+my $counter=0;
 foreach my $opt (sort bysprofile keys %toprint) {
+    $counter++;
     wait_for_one() unless $num_running < $NPROCS;
     die unless $num_running < $NPROCS;
     my $pid = fork();
     die unless $pid >= 0;
-    go($opt) if $pid == 0;
+    go($opt, $counter) if $pid == 0;
     # make sure we're in the parent
     die unless $$ == $opid;
     $num_running++;
