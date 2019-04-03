@@ -1,0 +1,29 @@
+diff --git a/utils/cache_knownbits.in b/utils/cache_knownbits.in
+index 495aa1a..4ef14e5 100755
+--- a/utils/cache_knownbits.in
++++ b/utils/cache_knownbits.in
+@@ -284,12 +284,14 @@ sub go($) {
+ #        next if ($k eq "");
+ #        $ret .= "; sprofile $h{$k} \"$k\"\n";
+ #    }
+-    $ret .= "; total dynamic profile = $dprofiles{$opt}\n";
++#    $ret .= "; total dynamic profile = $dprofiles{$opt}\n";
+ #    %h = %{$dprofile_locs{$opt}};
+ #    foreach my $k (sort { $h{$b} <=> $h{$a} } keys %h) {
+ #        next if ($k eq "");
+ #        $ret .= "; dprofile $h{$k} \"$k\"\n";
+ #    }
++    my $size_eval = length($opt);
++    $ret .= "; size = ${size_eval}\n";
+     $ret .= "------------------------------------------------------\n\n";
+     print $ret if $print;
+     exit();
+@@ -304,7 +306,7 @@ sub wait_for_one() {
+     $num_running--;
+ }
+
+-foreach my $opt (sort bysprofile keys %toprint) {
++foreach my $opt (sort bylen keys %toprint) {
+     wait_for_one() unless $num_running < $NPROCS;
+     die unless $num_running < $NPROCS;
+     my $pid = fork();
