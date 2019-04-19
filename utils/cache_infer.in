@@ -188,6 +188,15 @@ sub byrank {
 }
 
 foreach my $k (sort byrank @keys) {
+    # Search for UB insts and skip
+    if (index($k, "nsw") != -1 ||
+        index($k, "nuw") != -1 ||
+        index($k, "nw") != -1 ||
+        index($k, "exact") != -1 ||
+        index($k, "overflow") != -1) {
+        $skip++;
+        next;
+    }
     status() if $VERBOSE;
     my $result = $r->hget($k, "cache-infer-tag");
     if (defined $result && $result eq $tag) {
