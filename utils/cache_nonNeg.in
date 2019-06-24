@@ -76,6 +76,8 @@ sub souper_known ($) {
 	chomp $line;
 	if ($line =~ /known from souper: (.*)$/) {
 	    $k = $1;
+	} elsif ($line =~ /Error: SMTSolver->isSatisfiable .*/) {
+	    $k = "souper timeout";
 	}
     }
     close INF;
@@ -255,13 +257,19 @@ sub go {
 	$print = 1;
 	my $llvm_stronger = 0;
 	my $souper_stronger = 0;
+	my $souper_timeout = 0;
+	if ($sk eq "souper timeout") {
+            $souper_timeout = 1;
+	}
         if ($sk eq "(nonNegative)") {
             $souper_stronger = 1;
         }
         if ($lk eq "(nonNegative)") {
             $llvm_stronger = 1;
         }
-	if ($llvm_stronger && $souper_stronger) {
+	if ($souper_timeout) {
+	    $ret .= "souper timeout";
+	} elsif ($llvm_stronger && $souper_stronger) {
 	    $ret .= "neither is stronger";
 	} elsif ($llvm_stronger) {
 	    $ret .= "llvm is stronger";
