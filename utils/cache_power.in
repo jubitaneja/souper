@@ -74,7 +74,7 @@ sub souper_known ($) {
     my $k = "";
     while (my $line = <INF>) {
 	chomp $line;
-	if ($line =~ /known from souper: (.*)$/) {
+	if ($line =~ /known powerOfTwo from souper: (.*)$/) {
 	    $k = $1;
 	}
     }
@@ -214,7 +214,7 @@ sub llvm_known($) {
     my $known;
     while (my $line = <INF>) {
 	chomp $line;
-	if ($line =~ /known at return: (.*)$/) {
+	if ($line =~ /known powerOfTwo from compiler: (.*)$/) {
 	    $known = $1;
 	}
     }
@@ -236,7 +236,7 @@ sub go {
     $ret .= "\n";
 
     my $sk = souper_known($opt);
-    $ret .= "known from Souper:   $sk\n";
+    $ret .= "known powerTwo from Souper:   $sk\n";
 
     my $lk;
     if (0) {
@@ -247,17 +247,29 @@ sub go {
     } else {
 	$lk = llvm_known($opt);
     }
-    $ret .= "known from compiler: $lk\n";
+    $ret .= "known powerTwo from compiler: $lk\n";
 
     my $print = 0;
     if ($sk ne $lk) {
 	$print = 1;
 	my $llvm_stronger = 0;
 	my $souper_stronger = 0;
-        if ($sk eq "(powerOfTwo)") {
+        #if ($sk eq "(powerOfTwo)") {
+        #    $souper_stronger = 1;
+        #}
+        #if ($lk eq "(powerOfTwo)") {
+        #    $llvm_stronger = 1;
+        #}
+        if ($sk eq "") {
+            die "Souper didn't compute the fact: timeout";
+        }
+        if ($lk eq "") {
+            die "Compiler didn't compute the fact";
+        }
+        if ($sk eq "true") {
             $souper_stronger = 1;
         }
-        if ($lk eq "(powerOfTwo)") {
+        if ($lk eq "true") {
             $llvm_stronger = 1;
         }
 	if ($llvm_stronger && $souper_stronger) {

@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "llvm/Support/MemoryBuffer.h"
+#include "llvm/Support/KnownBits.h"
 #include "souper/Parser/Parser.h"
 #include "souper/Tool/GetSolverFromArgs.h"
 

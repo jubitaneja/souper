@@ -262,7 +262,7 @@ sub go {
         #    $llvm_stronger = 1;
         #}
         if ($sk eq "") {
-            die "Souper didn't compute the fact: Timeout";
+            die "Souper didn't compute the fact: timeout";
         }
         if ($lk eq "") {
             die "Compiler didn't compute the fact";
