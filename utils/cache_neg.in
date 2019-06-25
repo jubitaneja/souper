@@ -74,7 +74,7 @@ sub souper_known ($) {
     my $k = "";
     while (my $line = <INF>) {
 	chomp $line;
-	if ($line =~ /known from souper: (.*)$/) {
+	if ($line =~ /known negative from souper: (.*)$/) {
 	    $k = $1;
 	}
     }
@@ -214,7 +214,7 @@ sub llvm_known($) {
     my $known;
     while (my $line = <INF>) {
 	chomp $line;
-	if ($line =~ /known at return: (.*)$/) {
+	if ($line =~ /known negative from compiler: (.*)$/) {
 	    $known = $1;
 	}
     }
@@ -230,14 +230,14 @@ sub bydprofile { $dprofiles{$b} <=> $dprofiles{$a} }
 print "\n\n";
 
 sub go {
-    (my $opt) = @_;
-    #(my $opt, my $counter) = @_;
+    #(my $opt) = @_;
+    (my $opt, my $counter) = @_;
     my $ret = "";
     $ret .= "$opt";
     $ret .= "\n";
 
     my $sk = souper_known($opt);
-    $ret .= "known from Souper:   $sk\n";
+    $ret .= "known neg from Souper:   $sk\n";
 
     my $lk;
     if (0) {
@@ -248,20 +248,32 @@ sub go {
     } else {
 	$lk = llvm_known($opt);
     }
-    $ret .= "known from compiler: $lk\n";
+    $ret .= "known neg from compiler: $lk\n";
 
     my $print = 0;
     if ($sk ne $lk) {
 	$print = 1;
 	my $llvm_stronger = 0;
 	my $souper_stronger = 0;
-        if ($sk eq "(negative)") {
+        #if ($sk eq "(negative)") {
+        #    $souper_stronger = 1;
+        #}
+        #if ($lk eq "(negative)") {
+        #    $llvm_stronger = 1;
+        #}
+        if ($sk eq "") {
+            die "Souper didn't compute the fact: Timeout";
+        }
+        if ($lk eq "") {
+            die "Compiler didn't compute the fact";
+        }
+        if ($sk eq "true") {
             $souper_stronger = 1;
         }
-        if ($lk eq "(negative)") {
+        if ($lk eq "true") {
             $llvm_stronger = 1;
         }
-	if ($llvm_stronger && $souper_stronger) {
+        if ($llvm_stronger && $souper_stronger) {
 	    $ret .= "neither is stronger";
 	} elsif ($llvm_stronger) {
 	    $ret .= "llvm is stronger";
@@ -286,13 +298,13 @@ sub go {
 #        $ret .= "; dprofile $h{$k} \"$k\"\n";
 #    }
     $ret .= "------------------------------------------------------\n\n";
-    print $ret if $print;
-    #if ($print) {
-    #    my $fname = 'neg_' . sprintf("%08d", $counter);
-    #    open(my $fh, '>', $fname);
-    #    print $fh $ret;
-    #    close $fh;
-    #}
+    #print $ret if $print;
+    if ($print) {
+        my $fname = 'neg_' . sprintf("%08d", $counter);
+        open(my $fh, '>', $fname);
+        print $fh $ret;
+        close $fh;
+    }
     exit();
 }
 
@@ -305,15 +317,15 @@ sub wait_for_one() {
     $num_running--;
 }
 
-#my $counter=0;
+my $counter=0;
 foreach my $opt (sort bysprofile keys %toprint) {
-    #$counter++;
+    $counter++;
     wait_for_one() unless $num_running < $NPROCS;
     die unless $num_running < $NPROCS;
     my $pid = fork();
     die unless $pid >= 0;
-    go($opt) if $pid == 0;
-    #go($opt, $counter) if $pid == 0;
+    #go($opt) if $pid == 0;
+    go($opt, $counter) if $pid == 0;
     # make sure we're in the parent
     die unless $$ == $opid;
     $num_running++;

@@ -83,6 +83,13 @@ static cl::opt<bool> ParseLHSOnly("parse-lhs-only",
     cl::desc("Only parse the LHS, don't call infer() (default=false)"),
     cl::init(false));
 
+std::string convertToStr(bool Fact) {
+    if (Fact)
+      return "true";
+    else
+      return "false";
+}
+
 int SolveInst(const MemoryBufferRef &MB, Solver *S) {
   InstContext IC;
   std::string ErrStr;
@@ -109,6 +116,7 @@ int SolveInst(const MemoryBufferRef &MB, Solver *S) {
   int Ret = 0;
   int Success = 0, Fail = 0, Error = 0;
   for (auto Rep : Reps) {
+    #if 0
     if (InferNeg) {
       APInt Negative;
       if (std::error_code EC = S->Negative(Rep.BPCs, Rep.PCs, Rep.Mapping.LHS,
@@ -193,6 +201,91 @@ int SolveInst(const MemoryBufferRef &MB, Solver *S) {
         s = "";
       llvm::outs() << "known from souper: " << s << "\n";
       return 0;
+    }
+    #endif
+    if (InferNeg) {
+      bool Negative;
+      if (std::error_code EC = S->negative(Rep.BPCs, Rep.PCs, Rep.Mapping.LHS,
+                                           Negative, IC)) {
+        llvm::errs() << "Error: " << EC.message() << '\n';
+        Ret = 1;
+        ++Error;
+      } else {
+        llvm::outs() << "known negative from souper: "
+                     << convertToStr(Negative) << "\n";
+        ++Success;
+      }
+    }
+
+    if (InferNonNeg) {
+      bool NonNegative;
+      if (std::error_code EC = S->nonNegative(Rep.BPCs, Rep.PCs, Rep.Mapping.LHS,
+                                              NonNegative, IC)) {
+        llvm::errs() << "Error: " << EC.message() << '\n';
+        Ret = 1;
+        ++Error;
+      } else {
+        llvm::outs() << "known nonNegative from souper: "
+                     << convertToStr(NonNegative) << "\n";
+        ++Success;
+      }
+    }
+
+    if (InferKnownBits) {
+      unsigned W = Rep.Mapping.LHS->Width;
+      KnownBits Known(W);
+      if (std::error_code EC = S->knownBits(Rep.BPCs, Rep.PCs, Rep.Mapping.LHS,
+                                            Known, IC)) {
+        llvm::errs() << "Error: " << EC.message() << '\n';
+        Ret = 1;
+        ++Error;
+      } else {
+        llvm::outs() << "knownBits from souper: "
+                     << Inst::getKnownBitsString(Known.Zero, Known.One) << "\n";
+        ++Success;
+      }
+    }
+
+    if (InferPowerTwo) {
+      bool PowTwo;
+      if (std::error_code EC = S->powerTwo(Rep.BPCs, Rep.PCs, Rep.Mapping.LHS,
+                                           PowTwo, IC)) {
+        llvm::errs() << "Error: " << EC.message() << '\n';
+        Ret = 1;
+        ++Error;
+      } else {
+        llvm::outs() << "known powerOfTwo from souper: "
+                     << convertToStr(PowTwo) << "\n";
+        ++Success;
+      }
+    }
+
+    if (InferNonZero) {
+      bool NonZero;
+      if (std::error_code EC = S->nonZero(Rep.BPCs, Rep.PCs, Rep.Mapping.LHS,
+                                          NonZero, IC)) {
+        llvm::errs() << "Error: " << EC.message() << '\n';
+        Ret = 1;
+        ++Error;
+      } else {
+        llvm::outs() << "known nonZero from souper: "
+                     << convertToStr(NonZero) << "\n";
+        ++Success;
+      }
+    }
+
+    if (InferSignBits) {
+      unsigned SignBits;
+      if (std::error_code EC = S->signBits(Rep.BPCs, Rep.PCs, Rep.Mapping.LHS,
+                                           SignBits, IC)) {
+        llvm::errs() << "Error: " << EC.message() << '\n';
+        Ret = 1;
+        ++Error;
+      } else {
+        llvm::outs() << "known signBits from souper: "
+                     << std::to_string(SignBits) << "\n";
+        ++Success;
+      }
     }
 
     if (InferRange) {

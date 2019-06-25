@@ -879,9 +879,9 @@ void ExtractExprCandidates(Function &F, const LoopInfo *LI, DemandedBits *DB,
         bool Negative = 0;
         Negative = isKnownNegative(V, DL);
         if (Negative)
-          llvm::outs() << "known at return: " << "(negative)" << "\n";
+          llvm::outs() << "known negative from compiler: " << "true" << "\n";
         else
-          llvm::outs() << "known at return: " << "" << "\n";
+          llvm::outs() << "known negative from compiler: " << "false" << "\n";
       }
       if (PrintNonNegAtReturn && isa<ReturnInst>(I)) {
         auto V = I.getOperand(0);
@@ -889,9 +889,9 @@ void ExtractExprCandidates(Function &F, const LoopInfo *LI, DemandedBits *DB,
         bool NonNegative = 0;
         NonNegative = isKnownNonNegative(V, DL);
         if (NonNegative)
-          llvm::outs() << "known at return: " << "(nonNegative)" << "\n";
+          llvm::outs() << "known nonNegative from compiler: " << "true" << "\n";
         else
-          llvm::outs() << "known at return: " << "" << "\n";
+          llvm::outs() << "known nonNegative from compiler: " << "false" << "\n";
       }
       if (PrintKnownAtReturn && isa<ReturnInst>(I)) {
         auto V = I.getOperand(0);
@@ -899,7 +899,7 @@ void ExtractExprCandidates(Function &F, const LoopInfo *LI, DemandedBits *DB,
         unsigned Width = DL.getTypeSizeInBits(V->getType());
         KnownBits Known(Width);
         computeKnownBits(V, Known, DL);
-        llvm::outs() << "known at return: " << Inst::getKnownBitsString(Known.Zero, Known.One) << "\n";
+        llvm::outs() << "knownBits from compiler: " << Inst::getKnownBitsString(Known.Zero, Known.One) << "\n";
       }
       if (PrintPowerTwoAtReturn && isa<ReturnInst>(I)) {
         auto V = I.getOperand(0);
@@ -907,9 +907,9 @@ void ExtractExprCandidates(Function &F, const LoopInfo *LI, DemandedBits *DB,
         bool PowerTwo = 0;
         PowerTwo = isKnownToBeAPowerOfTwo(V, DL);
         if (PowerTwo)
-          llvm::outs() << "known at return: " << "(powerOfTwo)" << "\n";
+          llvm::outs() << "known powerOfTwo from compiler: " << "true" << "\n";
         else
-          llvm::outs() << "known at return: " << "" << "\n";
+          llvm::outs() << "known powerOfTwo from compiler: " << "false" << "\n";
       }
       if (PrintNonZeroAtReturn && isa<ReturnInst>(I)) {
         auto V = I.getOperand(0);
@@ -917,9 +917,9 @@ void ExtractExprCandidates(Function &F, const LoopInfo *LI, DemandedBits *DB,
         bool NonZero = 0;
         NonZero = isKnownNonZero(V, DL);
         if (NonZero)
-          llvm::outs() << "known at return: " << "(nonZero)" << "\n";
+          llvm::outs() << "known nonZero from compiler: " << "true" << "\n";
         else
-          llvm::outs() << "known at return: " << "" << "\n";
+          llvm::outs() << "known nonZero from compiler: " << "false" << "\n";
       }
       if (PrintSignBitsAtReturn && isa<ReturnInst>(I)) {
         auto V = I.getOperand(0);
@@ -927,9 +927,9 @@ void ExtractExprCandidates(Function &F, const LoopInfo *LI, DemandedBits *DB,
         unsigned NumSignBits = 1;
         NumSignBits = ComputeNumSignBits(V, DL);
         if (NumSignBits > 1)
-          llvm::outs() << "known at return: " << NumSignBits << "\n";
+          llvm::outs() << "known signBits from compiler: " << NumSignBits << "\n";
         else
-          llvm::outs() << "known at return: " << "" << "\n";
+          llvm::outs() << "known signBits from compiler: 1\n";
       }
       if (PrintRangeAtReturn && isa<ReturnInst>(I)) {
         auto V = I.getOperand(0);
