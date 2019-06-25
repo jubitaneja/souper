@@ -260,11 +260,12 @@ sub go {
         #if ($lk eq "(powerOfTwo)") {
         #    $llvm_stronger = 1;
         #}
+        my $souper_timeout = 0;
         if ($sk eq "") {
-            die "Souper didn't compute the fact: timeout";
+            $souper_timeout = 1;
         }
         if ($lk eq "") {
-            die "Compiler didn't compute the fact";
+            $ret .= "Compiler didn't compute the fact";
         }
         if ($sk eq "true") {
             $souper_stronger = 1;
@@ -272,7 +273,9 @@ sub go {
         if ($lk eq "true") {
             $llvm_stronger = 1;
         }
-	if ($llvm_stronger && $souper_stronger) {
+        if ($souper_timeout) {
+            $ret .= "timeout: Souper didn't compute the fact";
+	} elsif ($llvm_stronger && $souper_stronger) {
 	    $ret .= "neither is stronger";
 	} elsif ($llvm_stronger) {
 	    $ret .= "llvm is stronger";

@@ -254,11 +254,12 @@ sub go {
 	$print = 1;
 	my $llvm_stronger = 0;
 	my $souper_stronger = 0;
+        my $souper_timeout = 0;
     if ($lk eq "") {
-        die "llvm is not producing signbits";
+        $ret .= "llvm is not producing signbits";
     }
     if ($sk eq "") {
-        die "souper is not producing signbits: timeout";
+        $souper_timeout = 1;
     }
 
         #FIXME for signbits
@@ -272,7 +273,9 @@ sub go {
             $souper_stronger = 1;
             $llvm_stronger = 1;
         }
-	if ($llvm_stronger && $souper_stronger) {
+        if ($souper_timeout) {
+            $ret .= "timeout: Souper didn't compute the fact";
+	} elsif ($llvm_stronger && $souper_stronger) {
 	    $ret .= "neither is stronger";
 	} elsif ($llvm_stronger) {
 	    $ret .= "llvm is stronger";
