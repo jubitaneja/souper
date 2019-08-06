@@ -303,7 +303,7 @@ void ReplacementContext::clear() {
 }
 
 void ReplacementContext::printPCs(const std::vector<InstMapping> &PCs,
-                                  llvm::raw_ostream &Out, Depthmap &DM, bool printNames) {
+                                  llvm::raw_ostream &Out, DepthMap &DM, bool printNames) {
   for (const auto &PC : PCs) {
     std::string SRef = printInst(PC.LHS, Out, printNames, DM);
     std::string RRef = printInst(PC.RHS, Out, printNames, DM);

@@ -317,7 +317,8 @@ souper::AliveDriver::synthesizeConstants(souper::Inst *RHS) {
   std::set<Inst *> Visited;
   getReservedConsts(RHS, Consts, Visited);
   ReplacementContext RC;
-  RC.printInst(RHS, llvm::errs(), true);
+  DepthMap DM;
+  RC.printInst(RHS, llvm::errs(), true, DM);
   assert(!Consts.empty());
   RExprCache.clear();
   IR::Function RHSF;
@@ -677,7 +678,8 @@ bool souper::isCandidateInfeasible(souper::Inst* RHS, souper::ValueCache& C,
                             {P.first, IC.getConst(P.second.getValue())});
       RHSAssume = IC.getInst(Inst::And, 1, {RHSAssume, Eq});
       ReplacementContext RC;
-      RC.printInst(RHSAssume, llvm::errs(), true);
+      DepthMap DM;
+      RC.printInst(RHSAssume, llvm::errs(), true, DM);
     } else {
       return false;
     }

@@ -156,6 +156,7 @@ bool PruningManager::isInfeasibleWithSolver(Inst *RHS, unsigned StatsLevel) {
         std::map<Block *, Block *> BlockCache;
         auto RHSReplacement = getInstCopy(RHS, SC.IC, InstCache, BlockCache, &ConstMap, true);
         auto LHSReplacement = SC.IC.getConst(Val);
+        DepthMap DM;
 
         auto Cond = SC.IC.getInst(Inst::Eq, 1, {LHSReplacement, RHSReplacement});
         InstMapping Mapping {Cond, SC.IC.getConst(llvm::APInt(1, true))};
@@ -164,9 +165,9 @@ bool PruningManager::isInfeasibleWithSolver(Inst *RHS, unsigned StatsLevel) {
           llvm::errs() << Query << "\n";
 
           llvm::errs() << "LHS\n";
-          ReplacementContext RC1; RC1.printInst(Mapping.LHS, llvm::errs(), true);
+          ReplacementContext RC1; RC1.printInst(Mapping.LHS, llvm::errs(), true, DM);
           llvm::errs() << "RHS\n";
-          ReplacementContext RC2; RC2.printInst(Mapping.RHS, llvm::errs(), true);
+          ReplacementContext RC2; RC2.printInst(Mapping.RHS, llvm::errs(), true, DM);
         }
 
         bool Result;
@@ -241,7 +242,8 @@ void PruningManager::init() {
     DataflowPrune= [this](Inst *I, std::vector<Inst *> &RI) {
       TotalGuesses++;
       ReplacementContext RC;
-      RC.printInst(I, llvm::errs(), true);
+      DepthMap DM;
+      RC.printInst(I, llvm::errs(), true, DM);
       if (isInfeasible(I, StatsLevel)) {
         NumPruned++;
         llvm::errs() << "Tally: "

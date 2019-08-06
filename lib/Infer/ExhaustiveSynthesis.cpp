@@ -579,7 +579,8 @@ bool isBigQuerySat(SynthesisContext &SC,
   if (DebugLevel > 2) {
     llvm::errs() << "\n\n--------------------------------------------\nBigQuery\n";
     ReplacementContext RC;
-    RC.printInst(Ante, llvm::errs(), false);
+    DepthMap DM;
+    RC.printInst(Ante, llvm::errs(), false, DM);
   }
 
   // (LHS != i_1) && (LHS != i_2) && ... && (LHS != i_n) == true
@@ -620,7 +621,8 @@ std::error_code synthesizeWithKLEE(SynthesisContext &SC, Inst *&RHS,
     if (DebugLevel > 2) {
       llvm::errs() << "\n--------------------------------------------\nguess " << GuessIndex << "\n\n";
       ReplacementContext RC;
-      RC.printInst(I, llvm::errs(), /*printNames=*/true);
+      DepthMap DM;
+      RC.printInst(I, llvm::errs(), /*printNames=*/true, DM);
       llvm::errs() << "\n";
     }
 
