@@ -205,26 +205,23 @@ std::string ReplacementContext::printInstImpl(Inst *I, llvm::raw_ostream &Out,
   setInst(InstName, I);
 
   if (!Recurse) {
-    Out << "%" << InstName << ":i" << I->Width << " = "
-        << Inst::getKindName(I->K);
-    if (I->K == Inst::Var) {
-      if (I->KnownZeros.getBoolValue() || I->KnownOnes.getBoolValue())
-        Out << " (knownBits=" << Inst::getKnownBitsString(I->KnownZeros, I->KnownOnes)
-            << ")";
-      if (I->NonNegative)
-        Out << " (nonNegative)";
-      if (I->Negative)
-        Out << " (negative)";
-      if (I->NonZero)
-        Out << " (nonZero)";
-      if (I->PowOfTwo)
-        Out << " (powerOfTwo)";
-      if (I->NumSignBits > 1)
-        Out << " (signBits=" << I->NumSignBits << ")";
-      if (!I->Range.isFullSet())
-        Out << " (range=[" << I->Range.getLower()
-            << "," << I->Range.getUpper() << "))";
-    }
+    Out << "%" << InstName << ":i" << I->Width << " = var";
+//    if (I->KnownZeros.getBoolValue() || I->KnownOnes.getBoolValue())
+//      Out << " (knownBits=" << Inst::getKnownBitsString(I->KnownZeros, I->KnownOnes)
+//          << ")";
+//    if (I->NonNegative)
+//      Out << " (nonNegative)";
+//    if (I->Negative)
+//      Out << " (negative)";
+//    if (I->NonZero)
+//      Out << " (nonZero)";
+//    if (I->PowOfTwo)
+//      Out << " (powerOfTwo)";
+//    if (I->NumSignBits > 1)
+//      Out << " (signBits=" << I->NumSignBits << ")";
+//    if (!I->Range.isFullSet())
+//      Out << " (range=[" << I->Range.getLower()
+//          << "," << I->Range.getUpper() << "))";
     Out << "\n";
     SS << "%" << InstName;
     return SS.str();
