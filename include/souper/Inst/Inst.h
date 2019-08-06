@@ -191,19 +191,27 @@ struct BlockPCMapping {
 
 typedef std::vector<BlockPCMapping> BlockPCs;
 
+struct DepthMap {
+  std::unordered_map<Inst *, int> M;
+  void setDepth(Inst *I, int Depth, int MaxDepth);
+  DepthMap() {}
+  DepthMap(Inst *I, int MaxDepth);
+};
+
 class ReplacementContext {
   llvm::DenseMap<Inst *, std::string> InstNames;
   llvm::DenseMap<Block *, std::string> BlockNames;
   std::map<std::string, Inst *> NameToInst;
   std::map<std::string, Block *> NameToBlock;
-  std::string printInstImpl(Inst *I, llvm::raw_ostream &Out, bool printNames, Inst *OrigI);
+  std::string printInstImpl(Inst *I, llvm::raw_ostream &Out, bool printNames, Inst *OrigI, DepthMap &DM);
 
 public:
   void printPCs(const std::vector<InstMapping> &PCs,
-                llvm::raw_ostream &Out, bool printNames);
+                llvm::raw_ostream &Out, DepthMap &DM, bool printNames);
   void printBlockPCs(const BlockPCs &BPCs,
-                     llvm::raw_ostream &Out, bool printNames);
-  std::string printInst(Inst *I, llvm::raw_ostream &Out, bool printNames);
+                     llvm::raw_ostream &Out, DepthMap &DM, bool printNames);
+  std::string printInst(Inst *I, llvm::raw_ostream &Out, bool printNames,
+			DepthMap &DM);
   std::string printBlock(Block *B, llvm::raw_ostream &Out);
   Inst *getInst(llvm::StringRef Name);
   void setInst(llvm::StringRef Name, Inst *I);

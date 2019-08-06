@@ -35,6 +35,7 @@
 #include <map>
 #include <memory>
 #include <sstream>
+#include <unordered_map>
 #include <unordered_set>
 #include <tuple>
 #include "llvm/Analysis/ValueTracking.h"

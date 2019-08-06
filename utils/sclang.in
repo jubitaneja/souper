@@ -106,6 +106,10 @@ cache.
 
 SOUPER_NO_SOUPER -- Don't run Souper at all.
 
+SOUPER_PRINT_DEPTH_BOUND -- When printing Souper expressions, limit
+the depth to the value of this variable. Use this in conjunction with
+SOUPER_NO_INFER to populate the cache with depth-bounded expressions.
+
 SOUPER_SAVE_BITCODE -- The value of this variable is the name of a
 directory where a copy of the bitcode for the compiled file will be
 stored.
@@ -255,6 +259,10 @@ if ($souper) {
     if (exists $ENV{"SOUPER_STATS"}) {
         push @ARGV, ("-mllvm", "-stats");
     }
+    if (exists $ENV{"SOUPER_PRINT_DEPTH_BOUND"}) {
+	push @ARGV, ("-mllvm", "-souper-print-depth-bound=".$ENV{"SOUPER_PRINT_DEPTH_BOUND"});
+    }
+
     if (exists $ENV{"SOUPER_NO_HARVEST_DATAFLOW_FACTS"}) {
         push @ARGV, ("-mllvm", "-souper-harvest-dataflow-facts=false");
     }

@@ -15,6 +15,7 @@
 #include "souper/Inst/Inst.h"
 
 #include "llvm/ADT/StringSwitch.h"
+#include "llvm/Support/CommandLine.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/raw_ostream.h"
 
@@ -22,6 +23,11 @@
 #include <set>
 
 using namespace souper;
+
+static llvm::cl::opt<int> PrintDepthBound(
+    "souper-print-depth-bound",
+    llvm::cl::desc("Limit depth of printed Souper expressions (default=unlimited)"),
+    llvm::cl::init(-1));
 
 bool Inst::hasOrigin(llvm::Value *V) const {
   return std::find(Origins.begin(), Origins.end(), V) != Origins.end();
@@ -104,13 +110,36 @@ const std::vector<Inst *> &Inst::orderedOps() const {
   return OrderedOps;
 }
 
+void DepthMap::setDepth(Inst *I, int Depth, int MaxDepth) {
+  bool WalkArgs = false;
+  auto got = M.find(I);
+  if (got == M.end()) {
+    M[I] = Depth;
+    WalkArgs = true;
+  } else {
+    int PrevDepth = got->second;
+    if (PrevDepth < Depth) {
+      Depth = PrevDepth;
+      M[I] = Depth;
+      WalkArgs = true;
+    }
+  }
+  if (WalkArgs && Depth < MaxDepth)
+    for (auto Op : I->Ops)
+      setDepth(Op, Depth + 1, MaxDepth);
+}
+
+DepthMap::DepthMap(Inst *I, int MaxDepth) {
+  setDepth(I, 0, MaxDepth);
+}
+
 std::string ReplacementContext::printInst(Inst *I, llvm::raw_ostream &Out,
-                                          bool printNames) {
-  return printInstImpl(I, Out, printNames, I);
+                                          bool printNames, DepthMap &DM) {
+  return printInstImpl(I, Out, printNames, I, DM);
 }
 
 std::string ReplacementContext::printInstImpl(Inst *I, llvm::raw_ostream &Out,
-                                              bool printNames, Inst *OrigI) {
+                                              bool printNames, Inst *OrigI, DepthMap &DM) {
 
   std::string Str;
   llvm::raw_string_ostream SS(Str);
@@ -143,24 +172,30 @@ std::string ReplacementContext::printInstImpl(Inst *I, llvm::raw_ostream &Out,
     break;
   }
 
-  const std::vector<Inst *> &Ops = I->orderedOps();
-  for (unsigned Idx = 0; Idx != Ops.size(); ++Idx) {
-    if (Idx == 0)
-      OpsSS << " ";
-    else
-      OpsSS << ", ";
-    switch (I->K) {
-      default:
-        OpsSS << printInstImpl(Ops[Idx], Out, printNames, OrigI);
-        break;
-      case Inst::SAddWithOverflow:
-      case Inst::UAddWithOverflow:
-      case Inst::SSubWithOverflow:
-      case Inst::USubWithOverflow:
-      case Inst::SMulWithOverflow:
-      case Inst::UMulWithOverflow:
-        OpsSS << printInstImpl(I->Ops[1]->Ops[Idx], Out, printNames, OrigI);
-        break;
+  bool Recurse =
+    PrintDepthBound == -1 ||
+    DM.M.find(I) != DM.M.end();
+
+  if (Recurse) {
+    const std::vector<Inst *> &Ops = I->orderedOps();
+    for (unsigned Idx = 0; Idx != Ops.size(); ++Idx) {
+      if (Idx == 0)
+        OpsSS << " ";
+      else
+        OpsSS << ", ";
+      switch (I->K) {
+        default:
+          OpsSS << printInstImpl(Ops[Idx], Out, printNames, OrigI, DM);
+          break;
+        case Inst::SAddWithOverflow:
+        case Inst::UAddWithOverflow:
+        case Inst::SSubWithOverflow:
+        case Inst::USubWithOverflow:
+        case Inst::SMulWithOverflow:
+        case Inst::UMulWithOverflow:
+          OpsSS << printInstImpl(I->Ops[1]->Ops[Idx], Out, printNames, OrigI, DM);
+          break;
+      }
     }
   }
 
@@ -168,6 +203,32 @@ std::string ReplacementContext::printInstImpl(Inst *I, llvm::raw_ostream &Out,
   assert(InstNames.find(I) == InstNames.end());
   assert(NameToBlock.find(InstName) == NameToBlock.end());
   setInst(InstName, I);
+
+  if (!Recurse) {
+    Out << "%" << InstName << ":i" << I->Width << " = "
+        << Inst::getKindName(I->K);
+    if (I->K == Inst::Var) {
+      if (I->KnownZeros.getBoolValue() || I->KnownOnes.getBoolValue())
+        Out << " (knownBits=" << Inst::getKnownBitsString(I->KnownZeros, I->KnownOnes)
+            << ")";
+      if (I->NonNegative)
+        Out << " (nonNegative)";
+      if (I->Negative)
+        Out << " (negative)";
+      if (I->NonZero)
+        Out << " (nonZero)";
+      if (I->PowOfTwo)
+        Out << " (powerOfTwo)";
+      if (I->NumSignBits > 1)
+        Out << " (signBits=" << I->NumSignBits << ")";
+      if (!I->Range.isFullSet())
+        Out << " (range=[" << I->Range.getLower()
+            << "," << I->Range.getUpper() << "))";
+    }
+    Out << "\n";
+    SS << "%" << InstName;
+    return SS.str();
+  }
 
   // Skip the elements of overflow instruction tuple in souper IR
   switch (I->K) {
@@ -242,22 +303,22 @@ void ReplacementContext::clear() {
 }
 
 void ReplacementContext::printPCs(const std::vector<InstMapping> &PCs,
-                                  llvm::raw_ostream &Out, bool printNames) {
+                                  llvm::raw_ostream &Out, Depthmap &DM, bool printNames) {
   for (const auto &PC : PCs) {
-    std::string SRef = printInst(PC.LHS, Out, printNames);
-    std::string RRef = printInst(PC.RHS, Out, printNames);
+    std::string SRef = printInst(PC.LHS, Out, printNames, DM);
+    std::string RRef = printInst(PC.RHS, Out, printNames, DM);
     Out << "pc " << SRef << " " << RRef << '\n';
   }
 }
 
 void ReplacementContext::printBlockPCs(const BlockPCs &BPCs,
                                        llvm::raw_ostream &Out,
-                                       bool printNames) {
+                                       DepthMap &DM, bool printNames) {
   for (auto &BPC : BPCs) {
     assert(BPC.B && "NULL Block pointer!");
     std::string BlockName = printBlock(BPC.B, Out);
-    std::string SRef = printInst(BPC.PC.LHS, Out, printNames);
-    std::string RRef = printInst(BPC.PC.RHS, Out, printNames);
+    std::string SRef = printInst(BPC.PC.LHS, Out, printNames, DM);
+    std::string RRef = printInst(BPC.PC.RHS, Out, printNames, DM);
     Out << "blockpc %" << BlockName << " " << BPC.PredIdx << " ";
     Out << SRef << " " << RRef << '\n';
   }
@@ -861,10 +922,11 @@ void souper::PrintReplacement(llvm::raw_ostream &Out,
   assert(Mapping.RHS);
 
   ReplacementContext Context;
-  Context.printPCs(PCs, Out, printNames);
-  Context.printBlockPCs(BPCs, Out, printNames);
-  std::string SRef = Context.printInst(Mapping.LHS, Out, printNames);
-  std::string RRef = Context.printInst(Mapping.RHS, Out, printNames);
+  DepthMap DM;
+  Context.printPCs(PCs, Out, DM, printNames);
+  Context.printBlockPCs(BPCs, Out, DM, printNames);
+  std::string SRef = Context.printInst(Mapping.LHS, Out, printNames, DM);
+  std::string RRef = Context.printInst(Mapping.RHS, Out, printNames, DM);
   Out << "cand " << SRef << " " << RRef;
   if (!Mapping.LHS->DemandedBits.isAllOnesValue()) {
     Out<< " (" << "demandedBits="
@@ -894,9 +956,10 @@ void souper::PrintReplacementLHS(llvm::raw_ostream &Out,
   assert(LHS);
   assert(Context.empty());
 
-  Context.printPCs(PCs, Out, printNames);
-  Context.printBlockPCs(BPCs, Out, printNames);
-  std::string SRef = Context.printInst(LHS, Out, printNames);
+  DepthMap DM(LHS, PrintDepthBound);
+  Context.printPCs(PCs, Out, DM, printNames);
+  Context.printBlockPCs(BPCs, Out, DM, printNames);
+  std::string SRef = Context.printInst(LHS, Out, printNames, DM);
 
   Out << "infer " << SRef;
   if (!LHS->DemandedBits.isAllOnesValue()) {
@@ -921,7 +984,8 @@ std::string souper::GetReplacementLHSString(const BlockPCs &BPCs,
 
 void souper::PrintReplacementRHS(llvm::raw_ostream &Out, Inst *RHS,
                                  ReplacementContext &Context, bool printNames) {
-  std::string SRef = Context.printInst(RHS, Out, printNames);
+  DepthMap DM;
+  std::string SRef = Context.printInst(RHS, Out, printNames, DM);
   Out << "result " << SRef << '\n';
 }
 
