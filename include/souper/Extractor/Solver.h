@@ -82,6 +82,11 @@ public:
                            const std::vector<InstMapping> &PCs,
                            Inst *LHS, unsigned &SignBits,
                            InstContext &IC) = 0;
+  virtual
+  std::error_code testDemandedBits(const BlockPCs &BPCs,
+                              const std::vector<InstMapping> &PCs,
+                              Inst *LHS, std::map<std::string, APInt> &ResDB_vect,
+                              InstContext &IC) = 0;
 };
 
 std::unique_ptr<Solver> createBaseSolver(
