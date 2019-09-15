@@ -41,6 +41,7 @@ public:
   void init();
   // double init antipattern, required because init should
   // not be called when pruning is disabled
+  auto &getInputVals() {return InputVals;}
 private:
   SynthesisContext &SC;
   std::vector<ConcreteInterpreter> ConcreteInterpreters;

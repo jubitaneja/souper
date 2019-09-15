@@ -16,9 +16,18 @@
 
 #include "llvm/ADT/APInt.h"
 #include "llvm/Support/CommandLine.h"
+#include "souper/Infer/Pruning.h"
 #include "souper/Infer/ConstantSynthesis.h"
 
+
 extern unsigned DebugLevel;
+
+namespace {
+  using namespace llvm;
+  static cl::opt<unsigned> MaxSpecializations("souper-constant-synthesis-max-num-specializations",
+    cl::desc("Maximum number of input specializations in constant synthesis (default=15)."),
+    cl::init(15));
+}
 
 namespace souper {
 
@@ -38,6 +47,30 @@ ConstantSynthesis::synthesize(SMTLIBSolver *SMTSolver,
   Inst *SubstAnte = TrueConst;
   Inst *TriedAnte = TrueConst;
   std::error_code EC;
+
+  if (Pruner) {
+    size_t Specializations = 0;
+    for (auto &&VC : Pruner->getInputVals()) {
+      if (Specializations++ >= MaxSpecializations) {
+        break;
+      }
+      std::map<Inst *, llvm::APInt> VCCopy;
+      for (auto Pair : VC) {
+        if (Pair.second.hasValue()) {
+          VCCopy[Pair.first] = Pair.second.getValue();
+        }
+      }
+      if (!VCCopy.empty()) {
+        std::map<Inst *, Inst *> InstCache;
+        std::map<Block *, Block *> BlockCache;
+        TriedAnte = IC.getInst(Inst::And, 1,
+                               {IC.getInst(Inst::Eq, 1,
+                                           {getInstCopy(Mapping.LHS, IC, InstCache, BlockCache, &VCCopy, true),
+                                            getInstCopy(Mapping.RHS, IC, InstCache, BlockCache, &VCCopy, true)}), TriedAnte});
+      }
+    }
+  }
+
 
   for (int I = 0 ; I < MaxTries; I ++)  {
     bool IsSat;

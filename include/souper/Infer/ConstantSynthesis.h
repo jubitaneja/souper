@@ -24,9 +24,10 @@
 #include <system_error>
 
 namespace souper {
-
+class PruningManager;
 class ConstantSynthesis {
 public:
+  ConstantSynthesis(PruningManager *P = nullptr) : Pruner(P) {}
   // Synthesize a set of constants from the specification in LHS
   std::error_code synthesize(SMTLIBSolver *SMTSolver,
                              const BlockPCs &BPCs,
@@ -34,6 +35,8 @@ public:
                              InstMapping Mapping, std::set <Inst *> &ConstSet,
                              std::map <Inst *, llvm::APInt> &ResultMap,
                              InstContext &IC, unsigned MaxTries, unsigned Timeout, bool ErrorOnOutTry = false);
+private:
+  PruningManager *Pruner = nullptr;
 
 };
 }

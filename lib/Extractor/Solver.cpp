@@ -26,6 +26,7 @@
 #include "souper/Infer/ConstantSynthesis.h"
 #include "souper/Infer/ExhaustiveSynthesis.h"
 #include "souper/Infer/InstSynthesis.h"
+#include "souper/Infer/Pruning.h"
 #include "souper/KVStore/KVStore.h"
 #include "souper/Parser/Parser.h"
 
@@ -697,7 +698,16 @@ public:
 
     std::set<Inst *> ConstSet{ReservedX};
     std::map <Inst *, llvm::APInt> ResultMap;
+#if (false)
+    SynthesisContext SC{IC, SMTSolver.get(), LHS, /*LHSUB*/nullptr, {}, {}, Timeout};
+    std::vector<Inst *> Inputs;
+    findVars(LHS, Inputs);
+    PruningManager Pruner(SC, Inputs, DebugLevel);
+    Pruner.init();
+    ConstantSynthesis CS{&Pruner};
+#else
     ConstantSynthesis CS;
+#endif
     if (RangeMaxPrecise) {
       auto EC = CS.synthesize(SMTSolver.get(), BPCs, PCs, InstMapping(Guess, IC.getConst(APInt(1, true))),
                               ConstSet, ResultMap, IC, /*MaxTries=*/30, Timeout, true);
