@@ -73,6 +73,7 @@ svn co https://llvm.org/svn/llvm-project/libcxxabi/${llvm_branch} ${llvm_srcdir}
 patch ${llvm_srcdir}/lib/Transforms/InstCombine/InstCombineSelect.cpp < patches/disable-instcombine-select-to-logic.patch
 # Apply instcombine switch patch
 patch -d ${llvm_srcdir} -p0 -i $(pwd)/patches/enable-instcombine-switch.patch
+patch ${llvm_srcdir}/lib/Analysis/ValueTracking.cpp -p0 $(pwd)/patches/soundness-bugs-repro.patch
 
 mkdir -p $llvm_builddir
 
