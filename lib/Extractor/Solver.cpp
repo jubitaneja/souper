@@ -71,6 +71,9 @@ static cl::opt<int> MaxLHSSize("souper-max-lhs-size",
 static cl::opt<bool> RangeMaxPrecise("souper-range-max-precise",
     cl::desc("Terminate with error message when constant synthesize reaches MAX_TRIES(default=false)"),
     cl::init(false));
+static cl::opt<int> RangeMaxTries("souper-range-max-tries",
+    cl::desc("MAX_TRIES for range synthesize (default=30)"),
+    cl::init(30));
 
 
 class BaseSolver : public Solver {
@@ -710,7 +713,7 @@ public:
 #endif
     if (RangeMaxPrecise) {
       auto EC = CS.synthesize(SMTSolver.get(), BPCs, PCs, InstMapping(Guess, IC.getConst(APInt(1, true))),
-                              ConstSet, ResultMap, IC, /*MaxTries=*/30, Timeout, true);
+                              ConstSet, ResultMap, IC, /*MaxTries=*/RangeMaxTries, Timeout, true);
       if (EC == std::errc::result_out_of_range)
         llvm::report_fatal_error("Error: Constant synthesize reached MAX_TRIES(30), which might leads to imprecise results");
       if (EC)
