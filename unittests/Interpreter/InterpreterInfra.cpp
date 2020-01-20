@@ -481,8 +481,8 @@ void CRTesting::check(const ConstantRange &L, const ConstantRange &R, Inst::Kind
 
   ConstantRange PreciseRes = exhaustive(L, R, pred, FastRes);
 
-  long FastSize = FastRes.getSetSize().getLimitedValue();
-  long PreciseSize = PreciseRes.getSetSize().getLimitedValue();
+  long FastSize = getSetSize(FastRes).getLimitedValue();
+  long PreciseSize = getSetSize(PreciseRes).getLimitedValue();
 
   assert(FastSize >= 0 && FastSize <= (1 << WIDTH));
   assert(PreciseSize >= 0 && PreciseSize <= (1 << WIDTH));

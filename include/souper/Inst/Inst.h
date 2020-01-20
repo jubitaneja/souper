@@ -166,7 +166,7 @@ struct Inst : llvm::FoldingSetNode {
   unsigned SynthesisConstID;
   HarvestType HarvestKind;
   llvm::BasicBlock* HarvestFrom;
-  llvm::ConstantRange Range=llvm::ConstantRange(1);
+  llvm::ConstantRange Range=llvm::ConstantRange(1, true);
 };
 
 /// A mapping from an Inst to a replacement. This may either represent a
