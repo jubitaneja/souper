@@ -652,12 +652,7 @@ Inst *ExprBuilder::sdivExactUB(Inst *I) {
 }
 
 Inst *ExprBuilder::shiftUB(Inst *I) {
-   const std::vector<Inst *> &Ops = I->orderedOps();
-   auto L = Ops[0];
-   auto R = Ops[1];
-   unsigned Width = L->Width;
-   Inst *Lwidth = LIC->getConst(llvm::APInt(Width, Width));
-   return LIC->getInst(Inst::Ult, 1, {R, Lwidth});
+   return LIC->getConst(llvm::APInt(1, true));
 }
 
 Inst *ExprBuilder::shlnswUB(Inst *I) {

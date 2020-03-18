@@ -244,7 +244,10 @@ private:
     case Inst::Xor:
       return buildAssoc(XorExpr::create, Ops);
     case Inst::Shl: {
-      ref<Expr> Result = ShlExpr::create(get(Ops[0]), get(Ops[1]));
+      unsigned Width = Ops[1]->Width;
+      ref<Expr> Result = ShlExpr::create(get(Ops[0]),
+                         AndExpr::create(get(Ops[1]),
+                         klee::ConstantExpr::create(Width-1, Width)));
       return Result;
     }
     case Inst::ShlNSW: {
