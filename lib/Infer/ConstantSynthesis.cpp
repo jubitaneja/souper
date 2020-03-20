@@ -36,7 +36,7 @@ namespace souper {
 Inst *getUBConstraint(Inst::Kind K, unsigned OpNum, Inst *C,
                       InstContext &IC) {
   switch (K) {
-
+    /*
   case Inst::Shl:
   case Inst::LShr:
   case Inst::AShr:
@@ -44,6 +44,7 @@ Inst *getUBConstraint(Inst::Kind K, unsigned OpNum, Inst *C,
     return (OpNum == 0) ?
       IC.getConst(llvm::APInt(1, true)) : 
       IC.getInst(Inst::Ult, 1, { C, IC.getConst(llvm::APInt(C->Width, C->Width)) });
+    */
 
   case Inst::UDiv:
   case Inst::SDiv:
@@ -239,6 +240,11 @@ Inst *getConstConstraint(Inst::Kind K, unsigned OpNum, Inst *C,
   case Inst::SMulO:
   case Inst::UMulO:
   case Inst::Select: // handled elsewhere: 2nd and 3rd arguments can't be same constant
+    // TODO: fill this
+  case Inst::AndNot:
+  case Inst::XorNot:
+  case Inst::OrNot:
+  case Inst::Not:
     // no constraint
     return IC.getConst(llvm::APInt(1, true));
 
