@@ -524,6 +524,9 @@ bool Parser::typeCheckInst(Inst::Kind IK, unsigned &Width,
   case Inst::Slt:
   case Inst::Ule:
   case Inst::Sle:
+  case Inst::AndNot:
+  case Inst::OrNot:
+  case Inst::XorNot:
     MaxOps = 2;
     break;
 
@@ -591,6 +594,7 @@ bool Parser::typeCheckInst(Inst::Kind IK, unsigned &Width,
   case Inst::Cttz:
   case Inst::Ctlz:
   case Inst::Freeze:
+  case Inst::Not:
     MaxOps = MinOps = 1;
     break;
   case Inst::FShl:

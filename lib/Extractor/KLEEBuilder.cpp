@@ -243,11 +243,28 @@ private:
       return buildAssoc(OrExpr::create, Ops);
     case Inst::Xor:
       return buildAssoc(XorExpr::create, Ops);
+    case Inst::Not:
+      return NotExpr::create(get(Ops[0]));;
+    case Inst::AndNot: {
+      ref<Expr> Result = AndExpr::create(get(Ops[0]),
+                         NotExpr::create(get(Ops[1])));
+      return Result;
+    }
+    case Inst::OrNot: {
+      ref<Expr> Result = OrExpr::create(get(Ops[0]),
+                         NotExpr::create(get(Ops[1])));
+      return Result;
+    }
+    case Inst::XorNot: {
+      ref<Expr> Result = XorExpr::create(get(Ops[0]),
+                         NotExpr::create(get(Ops[1])));
+      return Result;
+    }
     case Inst::Shl: {
       unsigned Width = Ops[1]->Width;
       ref<Expr> Result = ShlExpr::create(get(Ops[0]),
                          AndExpr::create(get(Ops[1]),
-                         klee::ConstantExpr::create(Width-1, Width)));
+                         klee::ConstantExpr::alloc(llvm::APInt(Width, Width-1))));
       return Result;
     }
     case Inst::ShlNSW: {
@@ -263,9 +280,10 @@ private:
       return Result;
     }
     case Inst::LShr: {
+      unsigned Width = Ops[1]->Width;
       ref<Expr> Result = LShrExpr::create(get(Ops[0]),
                          AndExpr::create(get(Ops[1]),
-                         klee::ConstantExpr::create(Width-1, Width)));
+                         klee::ConstantExpr::alloc(llvm::APInt(Width, Width-1))));
       return Result;
     }
     case Inst::LShrExact: {
@@ -273,9 +291,10 @@ private:
       return Result;
     }
     case Inst::AShr: {
+      unsigned Width = Ops[1]->Width;
       ref<Expr> Result = AShrExpr::create(get(Ops[0]),
                          AndExpr::create(get(Ops[1]),
-                         klee::ConstantExpr::create(Width-1, Width)));
+                         klee::ConstantExpr::alloc(llvm::APInt(Width, Width-1))));
       return Result;
     }
     case Inst::AShrExact: {

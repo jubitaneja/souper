@@ -121,6 +121,10 @@ struct Inst : llvm::FoldingSetNode {
     SSubSat,
     USubSat,
     Freeze,
+    Not,
+    AndNot,
+    OrNot,
+    XorNot,
 
     ReservedConst,
     ReservedInst,

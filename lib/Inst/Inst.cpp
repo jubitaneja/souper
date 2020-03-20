@@ -459,6 +459,14 @@ const char *Inst::getKindName(Kind K) {
     return "o";
   case Freeze:
     return "freeze";
+  case Not:
+    return "not";
+  case AndNot:
+    return "andNot";
+  case OrNot:
+    return "orNot";
+  case XorNot:
+    return "xorNot";
   default:
     llvm_unreachable("all cases covered");
   }
@@ -529,6 +537,10 @@ Inst::Kind Inst::getKind(std::string Name) {
                    .Case("hole", Inst::Hole)
                    .Case("reservedconst", Inst::ReservedConst)
                    .Case("freeze", Inst::Freeze)
+                   .Case("not", Inst::Not)
+                   .Case("andNot", Inst::AndNot)
+                   .Case("orNot", Inst::OrNot)
+                   .Case("xorNot", Inst::XorNot)
                    .Default(Inst::None);
 }
 
