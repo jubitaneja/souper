@@ -33,7 +33,8 @@ using namespace souper;
 using namespace llvm;
 
 static const std::vector<Inst::Kind> UnaryOperators = {
-  Inst::CtPop, Inst::BSwap, Inst::BitReverse, Inst::Cttz, Inst::Ctlz, Inst::Freeze
+  Inst::CtPop, Inst::BSwap, Inst::BitReverse, Inst::Cttz, Inst::Ctlz, Inst::Freeze,
+  Inst::Not
 };
 
 static const std::vector<Inst::Kind> BinaryOperators = {
@@ -46,6 +47,8 @@ static const std::vector<Inst::Kind> BinaryOperators = {
   Inst::Slt, Inst::Ule, Inst::Sle,
   Inst::SAddSat, Inst::UAddSat,
   Inst::SSubSat, Inst::USubSat,
+  Inst::AndNot, Inst::OrNot,
+  Inst::XorNot,
 
   /* Overflow intrinsics are synthesized always with `extractvalue`.
    * Main overflow intrinsics like {S,U}{Add,Sub,Mul}WithOverflow below means synthesizing

@@ -131,7 +131,12 @@ static const std::vector<Component> CompLibrary = {
   Component{Inst::SAddSat, 0, {0, 0}},
   Component{Inst::UAddSat, 0, {0, 0}},
   Component{Inst::SSubSat, 0, {0, 0}},
-  Component{Inst::USubSat, 0, {0, 0}}
+  Component{Inst::USubSat, 0, {0, 0}},
+  //
+  Component{Inst::Not, 0, {0}},
+  Component{Inst::AndNot, 0, {0, 0}},
+  Component{Inst::OrNot, 0, {0, 0}},
+  Component{Inst::XorNot, 0, {0, 0}}
 };
 
 class InstSynthesis {

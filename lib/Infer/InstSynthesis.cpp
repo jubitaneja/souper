@@ -1137,6 +1137,15 @@ Inst *InstSynthesis::createCleanInst(Inst::Kind Kind, unsigned Width,
       return IC.getConst(APInt(Width, 0));
     break;
 
+  case Inst::Not:
+    if (Ops[0]->K == Inst::Const) {
+      if (Ops[0] == IC.getConst(APInt(Width, 0)))
+        return IC.getConst(APInt::getAllOnesValue(Width));
+      else if (Ops[0] == IC.getConst(APInt::getAllOnesValue(Width)))
+        return IC.getConst(APInt(Width, 0));
+    }
+    break;
+
   case Inst::Shl:
   case Inst::ShlNSW:
   case Inst::ShlNUW:
