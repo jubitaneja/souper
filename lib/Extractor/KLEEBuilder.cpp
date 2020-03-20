@@ -263,7 +263,9 @@ private:
       return Result;
     }
     case Inst::LShr: {
-      ref<Expr> Result = LShrExpr::create(get(Ops[0]), get(Ops[1]));
+      ref<Expr> Result = LShrExpr::create(get(Ops[0]),
+                         AndExpr::create(get(Ops[1]),
+                         klee::ConstantExpr::create(Width-1, Width)));
       return Result;
     }
     case Inst::LShrExact: {
@@ -271,7 +273,9 @@ private:
       return Result;
     }
     case Inst::AShr: {
-      ref<Expr> Result = AShrExpr::create(get(Ops[0]), get(Ops[1]));
+      ref<Expr> Result = AShrExpr::create(get(Ops[0]),
+                         AndExpr::create(get(Ops[1]),
+                         klee::ConstantExpr::create(Width-1, Width)));
       return Result;
     }
     case Inst::AShrExact: {
