@@ -23,15 +23,15 @@ ncpus=$(command nproc 2>/dev/null || command sysctl -n hw.ncpu 2>/dev/null || ec
 
 # hiredis version 0.14.0
 hiredis_commit=685030652cd98c5414ce554ff5b356dfe8437870
-llvm_repo=https://github.com/llvm/llvm-project.git
-# llvm_checkout specifies the git branch or hash to checkout to
-llvm_checkout=b6b3fcdcb8cdfb887e26d27bee03b997d2d65888
+llvm_repo=https://github.com/regehr/llvm-project.git
+# llvm_commit specifies the git branch or hash to checkout to
+llvm_commit=disable-peepholes-v04
 klee_repo=https://github.com/rsas/klee
 klee_branch=pure-bv-qf-llvm-7.0
-alive_commit=9823174bb34fcb9c8e33c37e7e04d46bfe3a29a5
+alive_commit=v1
 alive_repo=https://github.com/manasij7479/alive2.git
 z3_repo=https://github.com/Z3Prover/z3.git
-z3_commit=6330bf7d258c67cc086f4c2ee402e5d87af5d078
+z3_commit=z3-4.8.9
 
 llvm_build_type=Release
 if [ -n "$1" ] ; then
@@ -40,51 +40,49 @@ if [ -n "$1" ] ; then
 fi
 
 z3_srcdir=$(pwd)/third_party/z3
+z3_builddir=$(pwd)/third_party/z3-build
 z3_installdir=$(pwd)/third_party/z3-install
-git clone $z3_repo $z3_srcdir
-mkdir -p $z3_installdir
+(git clone $z3_repo $z3_srcdir && git -C $z3_srcdir checkout $z3_commit)
+mkdir -p $z3_builddir
+(cd $z3_builddir && cmake -Wno-dev ../z3 -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$z3_installdir -DZ3_BUILD_LIBZ3_SHARED=On -DZ3_BUILD_PYTHON_BINDINGS=Off && ninja && ninja install)
 
-(cd $z3_srcdir && git checkout $z3_commit && python scripts/mk_make.py --staticlib --prefix=$z3_installdir && cd build && make -j $ncpus install)
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  # Mac
+  Z3_SHAREDLIB=libz3.dylib
+else
+  Z3_SHAREDLIB=libz3.so
+fi
 
-export PATH=$z3_installdir/bin:$PATH
-export LD_LIBRARY_PATH=$z3_installdir/lib:$LD_LIBRARY_PATH
-
-alivedir=third_party/alive2
-alive_builddir=$alivedir/build
+alivedir=$(pwd)/third_party/alive2
+alive_builddir=$(pwd)/third_party/alive2-build
 mkdir -p $alivedir $alive_builddir
-git clone $alive_repo $alivedir/alive2
-git -C $alivedir/alive2 checkout $alive_commit
+git clone $alive_repo $alivedir --branch $alive_commit
 
 if [ -n "`which ninja`" ] ; then
-  (cd $alive_builddir && cmake ../alive2 -DZ3_LIBRARIES=$z3_installdir/lib/libz3.a -DZ3_INCLUDE_DIR=$z3_installdir/include -DCMAKE_BUILD_TYPE=$llvm_build_type -GNinja)
+  (cd $alive_builddir && cmake ../alive2 -DZ3_LIBRARIES=$z3_installdir/lib/$Z3_SHAREDLIB -DZ3_INCLUDE_DIR=$z3_installdir/include -DCMAKE_BUILD_TYPE=$llvm_build_type -GNinja)
   ninja -C $alive_builddir
 else
-  (cd $alive_builddir && cmake ../alive2 -DZ3_LIBRARIES=$z3_installdir/lib/libz3.a -DZ3_INCLUDE_DIR=$z3_installdir/include -DCMAKE_BUILD_TYPE=$llvm_build_type)
+  (cd $alive_builddir && cmake ../alive2 -DZ3_LIBRARIES=$z3_installdir/lib/$Z3_SHAREDLIB -DZ3_INCLUDE_DIR=$z3_installdir/include -DCMAKE_BUILD_TYPE=$llvm_build_type)
   make -C $alive_builddir -j $ncpus
 fi
 
-llvm_srcdir=third_party/llvm
-llvm_installdir=$(pwd)/${llvm_srcdir}/$llvm_build_type
-llvm_builddir=$(pwd)/${llvm_srcdir}/${llvm_build_type}-build
+llvm_srcdir=$(pwd)/third_party/llvm-project
+llvm_builddir=$(pwd)/third_party/llvm-${llvm_build_type}-build
+llvm_installdir=$(pwd)/third_party/llvm-${llvm_build_type}-install
 
-git clone $llvm_repo $llvm_srcdir
-git -C $llvm_srcdir checkout $llvm_checkout
-
-# Apply instcombine switch patch
-git -C ${llvm_srcdir} apply $(pwd)/patches/0001-enable-instcombine-switch.patch
-# Disable the broken select -> logic optimizations
-git -C ${llvm_srcdir} apply $(pwd)/patches/0002-disable-instcombine-select-to-logic.patch
+mkdir -p $llvm_srcdir
+(cd $llvm_srcdir && git init && git remote add origin $llvm_repo && git fetch origin $llvm_commit && git reset --hard FETCH_HEAD)
 
 mkdir -p $llvm_builddir
 
-cmake_flags="../llvm -DCMAKE_INSTALL_PREFIX=$llvm_installdir -DLLVM_ENABLE_ASSERTIONS=On -DLLVM_FORCE_ENABLE_STATS=On -DCMAKE_BUILD_TYPE=$llvm_build_type -DZ3_INCLUDE_DIR=$z3_installdir/include -DZ3_LIBRARIES=$z3_installdir/lib/libz3.a -DLLVM_ENABLE_PROJECTS='llvm;clang;compiler-rt'"
+cmake_flags="-DCMAKE_INSTALL_PREFIX=$llvm_installdir -DLLVM_ENABLE_ASSERTIONS=ON -DLLVM_FORCE_ENABLE_STATS=ON -DCMAKE_BUILD_TYPE=$llvm_build_type -DLLVM_ENABLE_Z3_SOLVER=OFF -DLLVM_ENABLE_PROJECTS=\'llvm;clang;compiler-rt\'"
 
 if [ -n "`which ninja`" ] ; then
-  (cd $llvm_builddir && cmake -G Ninja $cmake_flags "$@")
+  (cd $llvm_builddir && cmake ${llvm_srcdir}/llvm -G Ninja $cmake_flags -DCMAKE_CXX_FLAGS="-DDISABLE_WRONG_OPTIMIZATIONS_DEFAULT_VALUE=true -DDISABLE_PEEPHOLES_DEFAULT_VALUE=false" "$@")
   ninja -C $llvm_builddir
   ninja -C $llvm_builddir install
 else
-  (cd $llvm_builddir && cmake $cmake_flags "$@")
+  (cd $llvm_builddir && cmake $cmake_flags -DCMAKE_CXX_FLAGS="-DDISABLE_WRONG_OPTIMIZATIONS_DEFAULT_VALUE=true -DDISABLE_PEEPHOLES_DEFAULT_VALUE=false" "$@")
   make -C $llvm_builddir -j $ncpus
   make -C $llvm_builddir -j $ncpus install
 fi
@@ -95,7 +93,7 @@ cp $llvm_builddir/bin/FileCheck $llvm_installdir/bin
 cp $llvm_builddir/lib/libgtest_main.a $llvm_installdir/lib
 cp $llvm_builddir/lib/libgtest.a $llvm_installdir/lib
 
-kleedir=third_party/klee
+kleedir=$(pwd)/third_party/klee
 
 if [ -d third_party/klee/.git ] ; then
   (cd $kleedir && git fetch)
@@ -103,17 +101,18 @@ else
   git clone -b $klee_branch $klee_repo $kleedir
 fi
 
-hiredisdir=third_party/hiredis
+hiredis_srcdir=$(pwd)/third_party/hiredis
+hiredis_installdir=$(pwd)/third_party/hiredis-install
 
-if [ -d $hiredisdir/.git ] ; then
-  (cd $hiredisdir && git fetch)
+if [ -d $hiredis_srcdir/.git ] ; then
+  (cd $hiredis_srcdir && git fetch)
 else
-  git clone https://github.com/redis/hiredis.git $hiredisdir
+  git clone https://github.com/redis/hiredis.git $hiredis_srcdir
 fi
 
-mkdir -p $hiredisdir/install/include/hiredis
-mkdir -p $hiredisdir/install/lib
+mkdir -p $hiredis_installdir/include/hiredis
+mkdir -p $hiredis_installdir/lib
 
-(cd $hiredisdir && git checkout $hiredis_commit && make libhiredis.a &&
- cp -r hiredis.h async.h read.h sds.h adapters install/include/hiredis &&
- cp libhiredis.a install/lib)
+(cd $hiredis_srcdir && git checkout $hiredis_commit && make libhiredis.a &&
+ cp -r hiredis.h async.h read.h sds.h adapters ${hiredis_installdir}/include/hiredis &&
+ cp libhiredis.a ${hiredis_installdir}/lib)

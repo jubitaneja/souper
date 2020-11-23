@@ -31,6 +31,8 @@ STATISTIC(DominanceCheckFailed,
 
 using namespace llvm;
 
+extern unsigned DebugLevel;
+
 namespace souper {
 
 llvm::Type *Codegen::GetInstReturnType(llvm::LLVMContext &Context, Inst *I) {
@@ -79,12 +81,16 @@ llvm::Value *Codegen::getValue(Inst *I) {
           ++InstructionReplaced;
           return V;
         } else {
+	  if (DebugLevel > 2)
+	    llvm::errs() << "dominance check failed\n";
           ++DominanceCheckFailed;
         }
       } else {
         report_fatal_error("Unhandled LLVM instruction in getValue()");
       }
     }
+    if (DebugLevel > 2)
+      llvm::errs() << "returning nullptr from getValue()\n";
     return nullptr;
   }
 
@@ -92,6 +98,17 @@ llvm::Value *Codegen::getValue(Inst *I) {
   Value *V0 = Codegen::getValue(Ops[0]);
   if (!V0)
     return nullptr;
+
+  // PHI nodes must be the first instructions in a basic block. If we're
+  // replacing a PHI node with another instruction, make sure it comes after the
+  // other PHI nodes.
+  if (ReplacedInst &&
+      isa<PHINode>(ReplacedInst->getNextNode())) {
+    Instruction *InsertPoint = ReplacedInst;
+    while (isa<PHINode>(InsertPoint))
+      InsertPoint = InsertPoint->getNextNode();
+    Builder.SetInsertPoint(InsertPoint->getNextNode());
+  }
 
   switch (Ops.size()) {
   case 1: {

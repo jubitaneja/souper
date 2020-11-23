@@ -500,9 +500,10 @@ namespace souper {
     case Inst::Phi: {
       std::vector<llvm::KnownBits> vec;
       for (auto &Op : I->Ops) {
-        vec.emplace_back(findKnownBits(Op, CI));
+        vec.emplace_back(findKnownBits(Op, CI, UsePartialEval));
       }
       Result = mergeKnownBits(vec);
+      break;
     }
     case Inst::AddNUW :
     case Inst::AddNW :
@@ -935,13 +936,16 @@ namespace souper {
 #define RB1 findRestrictedBits(I->Ops[1])
 #define RB2 findRestrictedBits(I->Ops[2])
   llvm::APInt RestrictedBitsAnalysis::findRestrictedBits(souper::Inst *I) {
-    if (RBCache.find(I) != RBCache.end()) {
-      return RBCache[I];
-    }
-
     llvm::APInt Result(I->Width, 0);
     llvm::APInt AllZeroes = Result;
     Result.setAllBits();
+    if (RBCache.find(I) != RBCache.end()) {
+      llvm::APInt CachedResult = RBCache[I];
+      if (I->K == Inst::Var) {
+        RBCache[I] = Result; // set to all ones after 'first' use
+      }
+      return CachedResult;
+    }
 
     if (isReservedConst(I)) {
       // nop, all bits set
@@ -977,6 +981,10 @@ namespace souper {
 
       case Inst::BitReverse:
         Result = RB0.reverseBits();
+        break;
+
+      case Inst::Freeze:
+        Result = RB0;
         break;
 
       case Inst::Trunc:
@@ -1106,6 +1114,10 @@ namespace souper {
         auto RB1 = RB.findRestrictedBits(I->Ops[1]);
         // Take bivalent bits of opposite operand to independent variables
         for (auto V : IVARS) {
+          if (V->Width != I->Ops[0]->Width ||
+              V->Width != I->Ops[1]->Width) {
+            continue;
+          }
           if (A.find(V) == A.end())
             A[V] = APInt::getNullValue(V->Width);
           if (B.find(V) == B.end())
@@ -1216,6 +1228,7 @@ s.push(); s.add(ForAll(z, y != (x < z))); print("slt", s.check()); s.pop()
       case Inst::Xor:
       case Inst::BitReverse:
       case Inst::BSwap:
+      case Inst::Freeze:
       case Inst::Trunc: {
         Cache[I] = hasHoleInput;
         return hasHoleInput;
@@ -1267,4 +1280,262 @@ s.push(); s.add(ForAll(z, y != (x < z))); print("slt", s.check()); s.pop()
       }
     }
   }
+
+  namespace BackwardsKnownBitsTF {
+
+    llvm::KnownBits And(llvm::KnownBits R, llvm::KnownBits Op) {
+//      auto KB0 = (R.Zero & R.One)  |
+//                 (Op.One & R.Zero) |
+//                 (Op.Zero & R.One) |
+//                 (Op.Zero & Op.One);
+//      auto KB1 = R.One | (Op.Zero & Op.One);
+      // This is POSSIBLY wrong.
+      // TODO exhaustive tester
+      // TODO figure out correct boolean function
+      llvm::KnownBits Other(R.getBitWidth());
+      assert(!R.hasConflict() && !Op.hasConflict());
+      for (size_t i = 0; i < R.getBitWidth(); ++i) {
+        if (R.One[i]) {
+          if (Op.Zero[i]) {
+            // conflict
+            Other.Zero.setBit(i);
+            Other.One.setBit(i);
+          } else {
+            Other.One.setBit(i);
+          }
+        }
+        if (R.Zero[i]) {
+          if (Op.Zero[i]) {
+            Other.Zero.setBit(i);
+          }
+        }
+      }
+      return Other;
+    }
+
+    llvm::KnownBits Or(llvm::KnownBits R, llvm::KnownBits Op) {
+//      auto KB0 = R.Zero | (Op.Zero & Op.One);
+//      auto KB1 = (R.Zero & R.One)  |
+//           (Op.One & R.Zero) |
+//           (Op.Zero & R.One) |
+//           (Op.Zero & R.Zero)|
+//           (Op.Zero & Op.One);
+      // ^ This is wrong. Figure out the correct boolean functions
+      llvm::KnownBits Other(R.getBitWidth());
+      assert(!R.hasConflict() && !Op.hasConflict());
+      for (size_t i = 0; i < R.getBitWidth(); ++i) {
+        if (R.One[i]) {
+          if (Op.Zero[i]) {
+            Other.One.setBit(i);
+          }
+        }
+        if (R.Zero[i]) {
+          if (Op.One[i]) {
+            // conflict
+            Other.Zero.setBit(i);
+            Other.One.setBit(i);
+          } else {
+            Other.Zero.setBit(i);
+          }
+        }
+      }
+      return Other;
+    }
+
+    llvm::KnownBits Add(llvm::KnownBits R, llvm::KnownBits Op) {
+      return BinaryTransferFunctionsKB::sub(R, Op);
+    }
+
+    llvm::KnownBits Sub0(llvm::KnownBits Result, llvm::KnownBits Operand0) {
+      return BinaryTransferFunctionsKB::sub(Operand0, Result);
+    }
+
+    llvm::KnownBits Sub1(llvm::KnownBits Result, llvm::KnownBits Operand1) {
+      return BinaryTransferFunctionsKB::add(Operand1, Result);
+    }
+
+    llvm::KnownBits Xor(llvm::KnownBits R, llvm::KnownBits Op) {
+      llvm::KnownBits Other(R.getBitWidth());
+      assert(!R.hasConflict() && !Op.hasConflict());
+      for (size_t i = 0; i < R.getBitWidth(); ++i) {
+        if (R.One[i]) {
+          if (Op.Zero[i]) {
+            Other.One.setBit(i);
+          }
+          if (Op.One[i]) {
+            Other.Zero.setBit(i);
+          }
+        }
+        if (R.Zero[i]) {
+          if (Op.One[i]) {
+            Other.One.setBit(i);
+          }
+          if (Op.Zero[i]) {
+            Other.Zero.setBit(i);
+          }
+        }
+      }
+      return Other;
+    }
+  }
+
+  namespace ValueTF {
+    llvm::APInt Add(llvm::APInt Result, llvm::APInt Operand) {
+      return Result - Operand;
+    }
+    llvm::APInt Xor(llvm::APInt Result, llvm::APInt Operand) {
+      return (Result | Operand) & ~(Result & Operand);
+    }
+    llvm::APInt Sub0(llvm::APInt Result, llvm::APInt Operand0) {
+      return Operand0 - Result;
+    }
+    llvm::APInt Sub1(llvm::APInt Result, llvm::APInt Operand1) {
+      return Operand1 + Result;
+    }
+  }
+  using FV = ForcedValueAnalysis::Value;
+
+#define IFV(Op, Opn) !R.hasConcrete() || !Opn.hasConcrete() ? \
+    FV(BackwardsKnownBitsTF::Op(R.getKB(), Opn.getKB())) :    \
+    FV(ValueTF::Op(R.Concrete(), Opn.Concrete()))
+
+  FV get0(Inst::Kind K, FV R, FV Op0) {
+    switch (K) {
+      case Inst::Add : return IFV(Add, Op0);
+      case Inst::Xor : return IFV(Xor, Op0);
+      case Inst::Sub : return IFV(Sub0, Op0);
+      case Inst::And : return FV(BackwardsKnownBitsTF::And(R.getKB(),
+                                                       Op0.getKB()));
+      case Inst::Or : return FV(BackwardsKnownBitsTF::Or(R.getKB(),
+                                                       Op0.getKB()));
+      default: return {};
+    }
+  }
+  FV get1(Inst::Kind K, FV R, FV Op1) {
+    switch (K) {
+      case Inst::Add : return IFV(Add, Op1);
+      case Inst::Xor : return IFV(Xor, Op1);
+      case Inst::Sub : return IFV(Sub1, Op1);
+      case Inst::And : return FV(BackwardsKnownBitsTF::And(R.getKB(),
+                                                         Op1.getKB()));
+      case Inst::Or : return FV(BackwardsKnownBitsTF::Or(R.getKB(),
+                                                         Op1.getKB()));
+      default: return {};
+    }
+  }
+  FV getUnary(Inst::Kind K, FV R) {
+    switch (K) {
+      case Inst::Freeze : return R;
+      case Inst::BSwap : return FV(R.Concrete().byteSwap());
+      default: return {};
+    }
+  }
+#undef IFV
+
+  bool ForcedValueAnalysis::forceInst(souper::Inst *I, Value Result,
+    ConcreteInterpreter &CI, Worklist &ToDo) {
+
+    std::vector<EvalValue> OpValues;
+    size_t Missing = 0;
+    for (auto Op : I->Ops) {
+      if (Op->nReservedConsts == 0 && Op->nHoles == 0) {
+        // only evaluate when fully concrete
+        OpValues.push_back(CI.evaluateInst(Op));
+      } else {
+        Missing++;
+        OpValues.push_back(EvalValue());
+      }
+    }
+    if (!Missing) { // All operands could be fully evaluated
+      return false; // Subtree is fully concrete
+    }
+
+    if (I->Ops.size() == 1) {
+      auto Inv = getUnary(I->K, Result);
+      if (Inv.hasKB() && Inv.getKB().hasConflict()) {
+        return true;
+      }
+      if (Inv.hasConcrete() || Inv.hasKB()) {
+        if (addForcedValue(I->Ops[0], Inv, ToDo)) {
+          return true;
+        }
+      }
+    } else if (I->Ops.size() == 2) {
+      if (OpValues[0].hasValue() && !OpValues[1].hasValue()) {
+        auto Inv = get0(I->K, Result, FV(OpValues[0].getValue()));
+        if (Inv.hasKB() && Inv.getKB().hasConflict()) {
+          return true;
+        }
+        if (Inv.hasConcrete() || Inv.hasKB()) {
+          if (addForcedValue(I->Ops[1], Inv, ToDo)) {
+            return true;
+          }
+        }
+      }
+      if (OpValues[1].hasValue() && !OpValues[0].hasValue()) {
+        auto Inv = get1(I->K, Result, FV(OpValues[1].getValue()));
+        if (Inv.hasKB() && Inv.getKB().hasConflict()) {
+          return true;
+        }
+        if (Inv.hasConcrete() || Inv.hasKB()) {
+          if (addForcedValue(I->Ops[0], Inv, ToDo)) {
+            return true;
+          }
+        }
+      }
+    } else {
+      // TODO Ternary; some cases for select should be easy.
+    }
+    return false;
+  }
+
+  void ForcedValueAnalysis::countSymbolicInsts(Inst *I) {
+    I->nReservedConsts = isReservedConst(I) ? 1 : 0;
+    I->nHoles = isHole(I) ? 1 : 0;
+    for (auto Op : I->Ops) {
+      if (Op->nReservedConsts == -1 || Op->nHoles == -1) {
+        countSymbolicInsts(Op);
+      }
+      I->nReservedConsts += Op->nReservedConsts;
+      I->nHoles += Op->nHoles;
+    }
+  }
+
+  bool ForcedValueAnalysis::force(llvm::APInt Result, ConcreteInterpreter &CI) {
+    Worklist ToDo{{RHS, {Result}}};
+    while (!ToDo.empty()) {
+      auto &&[I, Val] = ToDo.back();
+      ToDo.pop_back();
+      if (forceInst(I, Val, CI, ToDo)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  bool ForcedValueAnalysis::addForcedValue(Inst *I, Value V, Worklist &ToDo) {
+//    ReplacementContext RC;
+//    llvm::errs() << "Trying to force: \n";
+//    RC.printInst(I, llvm::errs(), true);
+//    V.print(llvm::errs());
+
+    if (isReservedConst(I)) {
+      if (conflict()) {
+        return true;
+      }
+      for (auto &&Val : ForcedValues[I]) {
+        if (Val.conflict(V)) {
+//          llvm::errs() << "Failed to force: \n";
+//          RC.printInst(I, llvm::errs(), true);
+//          V.print(llvm::errs());
+          return true;
+        }
+      }
+      ForcedValues[I].push_back(V);
+    } else {
+      ToDo.push_back({I, V});
+    }
+    return false;
+  }
+
 }

@@ -1,12 +1,13 @@
-from ubuntu:18.04
+from ubuntu:20.04
 
 run set -x; \
-        apt-get update -qq \
-        && apt-get dist-upgrade -qq \
-        && apt-get autoremove -qq \
+        echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections \
+        && apt-get update -y -qq \
+        && apt-get dist-upgrade -y -qq \
+        && apt-get autoremove -y -qq \
         && apt-get remove -y -qq clang llvm llvm-runtime \
 	&& apt-get install libgmp10 \
-	&& echo 'ca-certificates valgrind libc6-dev libgmp-dev cmake patch ninja-build make autoconf automake libtool golang-go python subversion re2c git clang' > /usr/src/build-deps \
+	&& echo 'ca-certificates valgrind libc6-dev libgmp-dev cmake ninja-build make autoconf automake libtool golang-go python subversion re2c git clang' > /usr/src/build-deps \
 	&& apt-get install -y $(cat /usr/src/build-deps) --no-install-recommends \
 	&& git clone https://github.com/antirez/redis /usr/src/redis
 
@@ -21,15 +22,14 @@ run export GOPATH=/usr/src/go \
 
 add build_deps.sh /usr/src/souper/build_deps.sh
 add clone_and_test.sh /usr/src/souper/clone_and_test.sh
-add patches /usr/src/souper/patches
 
 run export CC=clang CXX=clang++ \
 	&& cd /usr/src/souper \
 #	&& ./build_deps.sh Debug \
-#       && rm -rf third_party/llvm/Debug-build \
+#	&& rm -r third_party/llvm-Debug-build \
 	&& ./build_deps.sh Release \
-        && rm -rf third_party/llvm/Release-build \
-	&& rm -rf third_party/hiredis/install/lib/libhiredis.so*
+	&& rm -r third_party/llvm-Release-build
+
 
 add CMakeLists.txt /usr/src/souper/CMakeLists.txt
 add docs /usr/src/souper/docs
@@ -42,9 +42,10 @@ add utils /usr/src/souper/utils
 add unittests /usr/src/souper/unittests
 
 run export GOPATH=/usr/src/go \
+        && export LD_LIBRARY_PATH=/usr/src/souper/third_party/z3-install/lib:$LD_LIBRARY_PATH \
 	&& mkdir -p /usr/src/souper-build \
 	&& cd /usr/src/souper-build \
-	&& CC=/usr/src/souper/third_party/llvm/Release/bin/clang CXX=/usr/src/souper/third_party/llvm/Release/bin/clang++ cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DTEST_SYNTHESIS=ON ../souper \
+	&& CC=/usr/src/souper/third_party/llvm-Release-install/bin/clang CXX=/usr/src/souper/third_party/llvm-Release-install/bin/clang++ cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DTEST_SYNTHESIS=ON ../souper \
 	&& ninja souperweb souperweb-backend \
         && ninja check \
 	&& cp souperweb souperweb-backend /usr/local/bin \

@@ -31,6 +31,7 @@ namespace {
     cl::desc("Maximum number of input specializations in constant synthesis (default=15)."),
     cl::init(15));
 }
+
 namespace souper {
 
 Inst *getUBConstraint(Inst::Kind K, unsigned OpNum, Inst *C,
@@ -352,7 +353,7 @@ ConstantSynthesis::synthesize(SMTLIBSolver *SMTSolver,
   std::set<Inst *> Visited;
   visitConstants(Mapping.RHS, Visited, ConstConstraints, ConstSet, IC, AvoidNops);
 
-  for (int I = 0 ; I < MaxTries; ++I)  {
+  for (int I = 0; I < MaxTries; ++I)  {
     bool IsSat;
     std::vector<Inst *> ModelInstsFirstQuery;
     std::vector<llvm::APInt> ModelValsFirstQuery;
@@ -363,8 +364,7 @@ ConstantSynthesis::synthesize(SMTLIBSolver *SMTSolver,
                                         IC.getInst(Inst::And, 1, {SubstAnte, TriedAnte})});
 
     std::string Query = BuildQuery(IC, BPCs, PCs, InstMapping(Mapping.LHS, Mapping.RHS),
-                                   &ModelInstsFirstQuery, FirstQueryAnte, true);
-
+                                   &ModelInstsFirstQuery, FirstQueryAnte, true, true);
 
     if (Query.empty())
       return std::make_error_code(std::errc::value_too_large);
@@ -373,9 +373,8 @@ ConstantSynthesis::synthesize(SMTLIBSolver *SMTSolver,
                                   &ModelValsFirstQuery, Timeout);
 
     if (EC) {
-      if (DebugLevel > 3) {
-        llvm::errs()<<"ConstantSynthesis: solver returns error on first query\n";
-      }
+      if (DebugLevel > 3)
+        llvm::errs() << "ConstantSynthesis: solver returns error on first query\n";
       return EC;
     }
 
@@ -387,9 +386,8 @@ ConstantSynthesis::synthesize(SMTLIBSolver *SMTSolver,
       return std::error_code();
     }
 
-    if (DebugLevel > 3) {
+    if (DebugLevel > 3)
       llvm::errs() << "first query is SAT, returning the model:\n";
-    }
 
     Inst* TriedAnteLocal = FalseConst;
     std::map<Inst *, llvm::APInt> ConstMap;
@@ -416,32 +414,25 @@ ConstantSynthesis::synthesize(SMTLIBSolver *SMTSolver,
 
     std::map<Inst *, Inst *> InstCache;
     std::map<Block *, Block *> BlockCache;
-    Inst *LHSCopy = getInstCopy(Mapping.LHS, IC, InstCache, BlockCache, &ConstMap, false);
     Inst *RHSCopy = getInstCopy(Mapping.RHS, IC, InstCache, BlockCache, &ConstMap, false);
-    std::vector<Block *> Blocks = getBlocksFromPhis(LHSCopy);
+
+    std::vector<Block *> Blocks = getBlocksFromPhis(Mapping.LHS);
     for (auto Block : Blocks) {
       Block->ConcretePred = 0;
     }
 
-    if (DebugLevel > 2) {
-      if (Pruner) {
-        if (Pruner->isInfeasible(RHSCopy, DebugLevel)) {
-          //TODO(manasij)
-          llvm::errs() << "Second Query Skipping opportunity.\n";
-        }
+    if (DebugLevel > 2 && Pruner) {
+      if (Pruner->isInfeasible(RHSCopy, DebugLevel)) {
+        //TODO(manasij)
+        llvm::errs() << "Second Query Skipping opportunity.\n";
       }
     }
-
-    BlockPCs BPCsCopy;
-    std::vector<InstMapping> PCsCopy;
-    separateBlockPCs(BPCs, BPCsCopy, InstCache, BlockCache, IC, &ConstMap, false);
-    separatePCs(PCs, PCsCopy, InstCache, BlockCache, IC, &ConstMap, false);
 
     // check if the constant is valid for all inputs
     std::vector<Inst *> ModelInstsSecondQuery;
     std::vector<llvm::APInt> ModelValsSecondQuery;
 
-    Query = BuildQuery(IC, BPCsCopy, PCsCopy, InstMapping(LHSCopy, RHSCopy),
+    Query = BuildQuery(IC, BPCs, PCs, InstMapping(Mapping.LHS, RHSCopy),
                        &ModelInstsSecondQuery, 0);
 
     if (Query.empty())
@@ -487,8 +478,8 @@ ConstantSynthesis::synthesize(SMTLIBSolver *SMTSolver,
       std::map<Inst *, Inst *> InstCache;
       std::map<Block *, Block *> BlockCache;
       if (EnableConcreteInterpreter) {
-        ConcreteInterpreter CI(LHSCopy, VC);
-        auto LHSV = CI.evaluateInst(LHSCopy);
+        ConcreteInterpreter CI(Mapping.LHS, VC);
+        auto LHSV = CI.evaluateInst(Mapping.LHS);
 
         if (!LHSV.hasValue()) {
           llvm::report_fatal_error("the model returned from second query evaluates to poison for LHS");

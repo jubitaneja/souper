@@ -157,7 +157,7 @@ struct ExprBuilder {
   void addPC(BasicBlock *BB, BasicBlock *Pred, std::vector<InstMapping> &PCs);
   void addPathConditions(BlockPCs &BPCs, std::vector<InstMapping> &PCs,
                          std::unordered_set<Block *> &VisitedBlocks,
-                         BasicBlock *BB);
+                         BasicBlock *BB, int Depth);
   Inst *get(Value *V, APInt DemandedBits);
   Inst *get(Value *V);
   Inst *getFromUse(Value *V);
@@ -235,8 +235,7 @@ Inst *ExprBuilder::makeArrayRead(Value *V) {
         // with this approach, we might be restricting the constant
         // range harvesting. Because range info. might be coming from
         // llvm values other than instruction.
-        BasicBlock *BB = I->getParent();
-        auto LVIRange = LVI->getConstantRange(V, BB);
+        auto LVIRange = LVI->getConstantRange(V, I);
         auto SC = SE->getSCEV(V);
         auto R1 = LVIRange.intersectWith(SE->getSignedRange(SC));
         auto R2 = LVIRange.intersectWith(SE->getUnsignedRange(SC));
@@ -246,7 +245,8 @@ Inst *ExprBuilder::makeArrayRead(Value *V) {
   }
 
   return IC.createVar(Width, Name, Range, Known.Zero, Known.One, NonZero, NonNegative,
-                      PowOfTwo, Negative, NumSignBits, 0);
+                      PowOfTwo, Negative, NumSignBits,
+                      llvm::APInt::getAllOnesValue(Width), 0);
 }
 
 Inst *ExprBuilder::buildConstant(Constant *c) {
@@ -263,6 +263,7 @@ Inst *ExprBuilder::buildConstant(Constant *c) {
   }
 }
 
+#if 0
 Inst *ExprBuilder::buildGEP(Inst *Ptr, gep_type_iterator begin,
                             gep_type_iterator end) {
   unsigned PSize = DL.getPointerSizeInBits();
@@ -290,6 +291,7 @@ Inst *ExprBuilder::buildGEP(Inst *Ptr, gep_type_iterator begin,
   }
   return Ptr;
 }
+#endif
 
 void ExprBuilder::markExternalUses (Inst *I) {
   std::map<Inst *, unsigned> UsesCount;
@@ -760,10 +762,12 @@ void ExprBuilder::addPC(BasicBlock *BB, BasicBlock *Pred,
 void ExprBuilder::addPathConditions(BlockPCs &BPCs,
                                     std::vector<InstMapping> &PCs,
                                     std::unordered_set<Block *> &VisitedBlocks,
-                                    BasicBlock *BB) {
+                                    BasicBlock *BB, int Depth) {
   if (auto Pred = BB->getSinglePredecessor()) {
-    addPathConditions(BPCs, PCs, VisitedBlocks, Pred);
-    addPC(BB, Pred, PCs);
+    if (Depth < 25) {
+      addPathConditions(BPCs, PCs, VisitedBlocks, Pred, Depth + 1);
+      addPC(BB, Pred, PCs);
+    }
   } else if (ExploitBPCs) {
     // BB is the entry of the function.
     if (pred_begin(BB) == pred_end(BB))
@@ -792,9 +796,8 @@ void ExprBuilder::addPathConditions(BlockPCs &BPCs,
     for (unsigned i = 0; i < BI.Preds.size(); ++i) {
       auto Pred = BI.Preds[i];
       std::vector<InstMapping> PCs;
-      if (Pred->getSinglePredecessor()) {
-        addPathConditions(BPCs, PCs, VisitedBlocks, Pred);
-      }
+      if (Pred->getSinglePredecessor())
+        addPathConditions(BPCs, PCs, VisitedBlocks, Pred, 0);
       // In case the predecessor is a br or switch instruction.
       addPC(BB, Pred, PCs);
       for (auto PC : PCs)
@@ -930,8 +933,7 @@ void PrintDataflowInfo(Function &F, Instruction &I, LazyValueInfo *LVI,
     ConstantRange Range = llvm::ConstantRange(Width, /*isFullSet=*/true);
     if (V->getType()->isIntegerTy()) {
       if (Instruction *I = dyn_cast<Instruction>(V)) {
-        BasicBlock *BB = I->getParent();
-        auto LVIRange = LVI->getConstantRange(V, BB);
+        auto LVIRange = LVI->getConstantRange(V, I);
         auto SC = SE->getSCEV(V);
         auto R1 = LVIRange.intersectWith(SE->getSignedRange(SC));
         auto R2 = LVIRange.intersectWith(SE->getUnsignedRange(SC));
@@ -1024,7 +1026,7 @@ void ExtractExprCandidates(Function &F, const LoopInfo *LI, DemandedBits *DB,
     }
     if (!BCS->Replacements.empty()) {
       std::unordered_set<Block *> VisitedBlocks;
-      EB.addPathConditions(BCS->BPCs, BCS->PCs, VisitedBlocks, &BB);
+      EB.addPathConditions(BCS->BPCs, BCS->PCs, VisitedBlocks, &BB, 0);
 
       InstClasses Vars, BPCVars;
       auto PCSets = AddPCSets(BCS->PCs, Vars);

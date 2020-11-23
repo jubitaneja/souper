@@ -23,6 +23,7 @@
 #include <set>
 #include <sstream>
 #include <string_view>
+#include <unordered_set>
 #include <z3.h>
 
 extern unsigned DebugLevel;
@@ -38,6 +39,10 @@ static llvm::cl::opt<bool> DisableUndefInput("alive-disable-undef-input",
   llvm::cl::desc("Assume inputs can not be undef (default = false)"),
   llvm::cl::init(false));
 
+static llvm::cl::opt<bool> SkipAliveSolver("alive-skip-solver",
+  llvm::cl::desc("Omit Alive solver calls for performance testing (default = false)"),
+  llvm::cl::init(false));
+
 class FunctionBuilder {
 public:
   FunctionBuilder(IR::Function &F_) : F(F_) {}
@@ -46,6 +51,15 @@ public:
   IR::Value *freeze(IR::Type &t, std::string name, A a) {
     return append
       (std::make_unique<IR::Freeze>(t, std::move(name), *toValue(t, a)));
+  }
+
+  IR::Value *undef(IR::Type &t, std::string name) {
+    auto undef = std::make_unique<IR::UndefValue>(t);
+    auto undef_ptr = undef.get();
+    F.addUndef(std::move(undef));
+    return append
+      (std::make_unique<IR::UnaryOp>(t, std::move(name),
+        *undef_ptr, IR::UnaryOp::Copy));
   }
 
   template <typename A, typename B, typename ...Others>
@@ -114,8 +128,7 @@ public:
   template <typename T>
   void assume(T &&V) {
     auto AI =
-      std::make_unique<IR::Assume>(*std::move(V), /*if_non_poison=*/ true);
-      //TODO: FIgure out whether if_non_poison can be uconditionally true
+      std::make_unique<IR::Assume>(*std::move(V), IR::Assume::Kind::IfNonPoison);
     F.getBB("").addInstr(std::move(AI));
   }
 
@@ -212,26 +225,28 @@ std::map<souper::Inst *, llvm::APInt>
 performCegisFirstQuery(tools::Transform &t,
                        std::map<std::string, souper::Inst *> &SouperConsts,
                        smt::expr &TriedExpr) {
-  IR::Value::reset_gbl_id();
   IR::State SrcState(t.src, true);
   IR::State TgtState(t.tgt, false);
   util::sym_exec(SrcState);
   util::sym_exec(TgtState);
 
-  auto &Sv = SrcState.returnVal();
-  auto &Tv = TgtState.returnVal();
+  auto &&Sv = SrcState.returnVal();
+  auto &&Tv = TgtState.returnVal();
 
   std::map<souper::Inst *, llvm::APInt> SynthesisResult;
   SynthesisResult.clear();
 
   std::set<smt::expr> Vars;
   std::map<std::string, smt::expr> SMTConsts;
-  for (auto &[Var, Val] : TgtState.getValues()) {
+  for (auto &[Var, Val, Pred] : TgtState.getValues()) {
     auto &Name = Var->getName();
     if (startsWith("%reservedconst", Name)) {
       SMTConsts[Name] = Val.first.value;
     }
   }
+
+  if (SkipAliveSolver)
+    return SynthesisResult;
 
   // TODO: implement synthesis with refinement
   smt::Solver::check({{(Sv.first.value == Tv.first.value) && (TriedExpr),
@@ -266,15 +281,14 @@ synthesizeConstantUsingSolver(tools::Transform &t,
   std::map<std::string, souper::Inst *> &SouperConsts) {
   return {};
 
-  IR::Value::reset_gbl_id();
   IR::State SrcState(t.src, true), tgt_state(t.tgt, false);
   util::sym_exec(SrcState);
   util::sym_exec(tgt_state);
 
   util::Errors Errs;
 
-  auto &SrcRet = SrcState.returnVal();
-  auto &TgtRet = tgt_state.returnVal();
+  auto &&SrcRet = SrcState.returnVal();
+  auto &&TgtRet = tgt_state.returnVal();
 
   auto QVars = SrcState.getQuantVars();
   QVars.insert(SrcRet.second.begin(), SrcRet.second.end());
@@ -292,7 +306,7 @@ synthesizeConstantUsingSolver(tools::Transform &t,
   std::set<smt::expr> Vars;
   std::map<std::string, smt::expr> SMTConsts;
 
-  for (auto &[var, val] : SrcState.getValues()) {
+  for (auto &[var, val, Pred] : SrcState.getValues()) {
     auto &name = var->getName();
     if (startsWith("%var", name)) {
       auto app = val.first.value.isApp();
@@ -300,7 +314,7 @@ synthesizeConstantUsingSolver(tools::Transform &t,
       Vars.insert(Z3_get_app_arg(smt::ctx(), app, 1));
     }
   }
-  for (auto &[var, val] : tgt_state.getValues()) {
+  for (auto &[var, val, Pred] : tgt_state.getValues()) {
     auto &name = var->getName();
     if (startsWith("%reserved", name)) {
       auto app = val.first.value.isApp();
@@ -313,6 +327,9 @@ synthesizeConstantUsingSolver(tools::Transform &t,
     smt::expr::mkForAll(Vars, SrcRet.first.value == TgtRet.first.value);
 
   std::map<souper::Inst *, llvm::APInt> SynthesisResult;
+
+  if (SkipAliveSolver)
+    return SynthesisResult;
 
   smt::Solver::check({{preprocess(t, QVars, SrcRet.second,
                        std::move(SimpleConstExistsCheck)),
@@ -334,18 +351,31 @@ synthesizeConstantUsingSolver(tools::Transform &t,
   return SynthesisResult;
 }
 
-souper::AliveDriver::AliveDriver(Inst *LHS_, Inst *PreCondition_, InstContext &IC_)
+souper::AliveDriver::AliveDriver(Inst *LHS_, Inst *PreCondition_, InstContext &IC_,
+                                 std::vector<Inst *> ExtraInputs)
     : LHS(LHS_), PreCondition(PreCondition_), IC(IC_) {
+  IsLHS = true;
   InstNumbers = 101;
   //FIXME: Magic number. 101 is chosen arbitrarily.
   //This should go away once non-input variable names are not discarded
 
+  // If alive ever supports src and tgt with different number of arguments in future, this can go away.
+  for (auto Extra : ExtraInputs) {
+    if (!translateAndCache(Extra, LHSF, LExprCache)) {
+      llvm::report_fatal_error("Warning: Failed to translate extra input.\n");
+    }
+  }
+
   if (!translateRoot(LHS, PreCondition, LHSF, LExprCache)) {
+    ReplacementContext RC;
+    RC.printInst(LHS, llvm::outs(), true);
     llvm::report_fatal_error("Failed to translate LHS.\n");
   }
+
   if (DisableUndefInput) {
     util::config::disable_undef_input = true;
   }
+  IsLHS = false;
 }
 
 //TODO: Return an APInt when alive supports it
@@ -379,7 +409,6 @@ souper::AliveDriver::synthesizeConstants(souper::Inst *RHS) {
 std::map<souper::Inst *, llvm::APInt>
 souper::AliveDriver::synthesizeConstantsWithCegis(souper::Inst *RHS, InstContext &IC) {
   std::map<souper::Inst *, llvm::APInt> ConstMap;
-
   std::map<std::string, Inst *> Consts;
   std::set<Inst *> Visited;
   getReservedConsts(RHS, Consts, Visited);
@@ -389,7 +418,7 @@ souper::AliveDriver::synthesizeConstantsWithCegis(souper::Inst *RHS, InstContext
 
   RExprCache.clear();
   IR::Function RHSF;
-  if (!translateRoot(RHS, nullptr, RHSF, RExprCache)) {
+  if (!translateRoot(RHS, PreCondition, RHSF, RExprCache)) {
     if (DebugLevel > 2)
       llvm::errs() << "Failed to translate RHS.\n";
     // TODO: Eventually turn this into an assertion
@@ -429,7 +458,7 @@ souper::AliveDriver::synthesizeConstantsWithCegis(souper::Inst *RHS, InstContext
 
     // Second Query
     {
-      if (verify(GWithC)) {
+      if (verify(GWithC, PreCondition)) {
         break;
       } else {
         continue;
@@ -439,10 +468,9 @@ souper::AliveDriver::synthesizeConstantsWithCegis(souper::Inst *RHS, InstContext
   return ConstMap;
 }
 
-void souper::AliveDriver::copyInputs(souper::AliveDriver::Cache &From,
-                                     souper::AliveDriver::Cache &To,
+void souper::AliveDriver::copyInputs(souper::AliveDriver::Cache &To,
                                      IR::Function &RHS) {
-  for (auto &[I, Val] : From) {
+  for (auto &[I, Val] : Inputs) {
     if (I->K == Inst::Kind::Var) {
       auto Input = std::make_unique<IR::Input>(Val->getType(),
                                                std::string(NameMap[I]));
@@ -455,7 +483,7 @@ void souper::AliveDriver::copyInputs(souper::AliveDriver::Cache &From,
 bool souper::AliveDriver::verify (Inst *RHS, Inst *RHSAssumptions) {
   RExprCache.clear();
   IR::Function RHSF;
-  copyInputs(LExprCache, RExprCache, RHSF);
+  copyInputs(RExprCache, RHSF);
   if (!translateRoot(RHS, RHSAssumptions, RHSF, RExprCache)) {
     llvm::errs() << "Failed to translate RHS.\n";
     // TODO: Eventually turn this into an assertion
@@ -475,10 +503,15 @@ bool souper::AliveDriver::verify (Inst *RHS, Inst *RHSAssumptions) {
   t.tgt = std::move(RHSF);
   tools::TransformVerify tv(t, /*check_each_var=*/false);
 
+  if (SkipAliveSolver)
+    return false;
+
   if (auto errs = tv.verify()) {
-    std::ostringstream os;
-    os << errs << "\n";
-    llvm::errs() << os.str();
+    if (DebugLevel >= 1) {
+      std::ostringstream os;
+      os << errs << "\n";
+      llvm::errs() << os.str();
+    }
     return false; // TODO: Encode errs into ErrorCode
   } else {
     if (DebugLevel > 2)
@@ -495,9 +528,14 @@ bool souper::AliveDriver::translateRoot(const souper::Inst *I, const Inst *PC,
   if (PC && !translateAndCache(PC, F, ExprCache)) {
     return false;
   }
+
+  translateDemandedBits(I, F, ExprCache);
+
   FunctionBuilder Builder(F);
   if (PC) {
-    Builder.assume(ExprCache[PC]);
+    auto Zero = Builder.val(getType(I->Width), llvm::APInt(I->Width, 0));
+    ExprCache[I] = Builder.select(getType(I->Width), "%ifpc",
+                   ExprCache[PC], ExprCache[I], Zero);
   }
   Builder.ret(getType(I->Width), ExprCache[I]);
   F.setType(getType(I->Width));
@@ -515,7 +553,7 @@ public:
                          souper::InstMapping Mapping,
                          std::vector<souper::Inst *> * ModelVars,
                          souper::Inst *Precondition,
-                         bool Negate) override {
+                         bool Negate, bool DropUB) override {
     llvm::report_fatal_error("Do not call");
     return "";
   }
@@ -523,7 +561,7 @@ public:
                          const std::vector<souper::InstMapping> & PCs,
                          souper::InstMapping Mapping,
                          std::vector<souper::Inst *> * ModelVars,
-                         bool Negate) override {
+                         bool Negate, bool DropUB) override {
     llvm::report_fatal_error("Do not call");
     return "";
   }
@@ -538,7 +576,7 @@ bool souper::AliveDriver::translateAndCache(const souper::Inst *I,
                                             Cache &ExprCache) {
   // unused translation; this is souper's internal instruction to represent overflow instructions
   if (souper::Inst::isOverflowIntrinsicSub(I->K)) {
-    return true; 
+    return true;
   }
 
   if (ExprCache.find(I) != ExprCache.end()) {
@@ -554,6 +592,9 @@ bool souper::AliveDriver::translateAndCache(const souper::Inst *I,
   for (auto &&Op : Ops) {
     if (!translateAndCache(Op, F, ExprCache)) {
       return false;
+    }
+    if (I->K == Inst::ExtractValue) {
+      break; // Break after translating main arg, idx is handled separately.
     }
   }
 
@@ -583,6 +624,9 @@ bool souper::AliveDriver::translateAndCache(const souper::Inst *I,
   switch (I->K) {
     case souper::Inst::Var: {
       ExprCache[I] = Builder.var(t, Name);
+      if (IsLHS) {
+        Inputs.push_back({I, ExprCache[I]});
+      }
       return translateDataflowFacts(I, F, ExprCache);
     }
     case souper::Inst::Hole: {
@@ -603,9 +647,23 @@ bool souper::AliveDriver::translateAndCache(const souper::Inst *I,
       return true;
     }
 
+    case souper::Inst::Phi: {
+      if (I->Ops.size() != 1) {
+        assert(false && "Phi with muliple arguments unimplemented");
+        return false;
+      }
+      ExprCache[I] = ExprCache[I->Ops[0]];
+      return true;
+    }
+
     case souper::Inst::ExtractValue: {
       unsigned idx = I->Ops[1]->Val.getLimitedValue();
       assert(idx <= 1 && "Only extractvalue with overflow instructions are supported.");
+      if (idx == 0) {
+        t = getType(I->Ops[0]->Width - 1);
+      } else {
+        t = getType(1);
+      }
       ExprCache[I] = Builder.extractvalue(t, Name, ExprCache[I->Ops[0]], idx);
       return true;
     }
@@ -622,7 +680,8 @@ bool souper::AliveDriver::translateAndCache(const souper::Inst *I,
     }
 
     #define BINOPOV(SOUPER, ALIVE) case souper::Inst::SOUPER: {  \
-      ExprCache[I] = Builder.binOp(t, Name, ExprCache[Ops[0]],   \
+      ExprCache[I] = Builder.binOp(getOverflowType               \
+      (I->Ops[0]->Width), Name, ExprCache[Ops[0]],               \
       ExprCache[Ops[1]], IR::BinOp::ALIVE);                      \
       return true;                                               \
     }
@@ -642,22 +701,22 @@ bool souper::AliveDriver::translateAndCache(const souper::Inst *I,
     BINOP(Add, Add);
     BINOPF(AddNSW, Add, NSW);
     BINOPF(AddNUW, Add, NUW);
-    BINOPF(AddNW, Add, NSWNUW);
+    BINOPF(AddNW, Add, NSW | IR::BinOp::NUW); //FIXME(manasij) : Leaky abstraction
     BINOP(Sub, Sub);
     BINOPF(SubNSW, Sub, NSW);
     BINOPF(SubNUW, Sub, NUW);
-    BINOPF(SubNW, Sub, NSWNUW);
+    BINOPF(SubNW, Sub, NSW | IR::BinOp::NUW);
     BINOP(Mul, Mul);
     BINOPF(MulNSW, Mul, NSW);
     BINOPF(MulNUW, Mul, NUW);
-    BINOPF(MulNW, Mul, NSWNUW);
+    BINOPF(MulNW, Mul, NSW | IR::BinOp::NUW);
     BINOP(And, And);
     BINOP(Or, Or);
     BINOP(Xor, Xor);
     BINOP(Shl, Shl);
     BINOPF(ShlNSW, Shl, NSW);
     BINOPF(ShlNUW, Shl, NUW);
-    BINOPF(ShlNW, Shl, NSWNUW);
+    BINOPF(ShlNW, Shl, NSW | IR::BinOp::NUW);
     BINOP(LShr, LShr);
     BINOPF(LShrExact, LShr, Exact);
     BINOP(AShr, AShr);
@@ -748,23 +807,219 @@ souper::AliveDriver::translateDataflowFacts(const souper::Inst* I,
   }
 }
 
-IR::Type &souper::AliveDriver::getType(int n) {
+void
+souper::AliveDriver::translateDemandedBits(const souper::Inst* I,
+                     IR::Function& F,
+                     souper::AliveDriver::Cache& ExprCache) {
+  FunctionBuilder Builder(F);
+
+  auto DemandedBits = IsLHS ? I->DemandedBits : LHS->DemandedBits;
+
+  assert(DemandedBits.getBitWidth() == I-> Width && "Uninitialized DemandedBits");
+
+  if (!DemandedBits.isAllOnesValue()) {
+    auto DBMask = Builder.val(getType(I->Width), DemandedBits);
+
+    ExprCache[I] = Builder.binOp(getType(I->Width),
+                                 "%" + std::to_string(InstNumbers++), ExprCache[I],
+                                 DBMask, IR::BinOp::And);
+  }
+}
+
+IR::Type &souper::AliveDriver::getType(int Width) {
+  std::string n = "i" + std::to_string(Width);
   if (TypeCache.find(n) == TypeCache.end()) {
-    TypeCache[n] = new IR::IntType("i" + std::to_string(n), n);
+    TypeCache[n] = new IR::IntType(std::move(n), Width);
   }
   return *TypeCache[n];
 }
 
-bool souper::isTransformationValid(souper::Inst* LHS, souper::Inst* RHS,
+IR::Type &souper::AliveDriver::getOverflowType(int Width) {
+  std::string n = "o" + std::to_string(Width);
+  if (TypeCache.find(n) == TypeCache.end()) {
+    std::vector<IR::Type *> Types = {&getType(Width), &getType(1)};
+    std::vector<bool> Padding = {false, false};
+    TypeCache[n] = new IR::StructType(std::move(n),std::move(Types),
+                                      std::move(Padding));
+  }
+  return *TypeCache[n];
+}
+
+namespace souper {
+void collectPhis(souper::Inst *I, std::map<souper::Block *, std::set<souper::Inst *>> &Phis) {
+  std::vector<Inst *> Stack{I};
+  std::unordered_set<Inst *> Visited;
+  while (!Stack.empty()) {
+    auto Current = Stack.back();
+    Stack.pop_back();
+    if (Current->K == Inst::Phi) {
+      Phis[Current->B].insert(Current);
+    }
+    Visited.insert(Current);
+    for (auto Child : Current->Ops) {
+      if (Visited.find(Child) == Visited.end()) {
+        Stack.push_back(Child);
+      }
+    }
+  }
+}
+
+struct RefinementProblem {
+  souper::Inst *LHS;
+  souper::Inst *RHS;
+  souper::Inst *Pre;
+  BlockPCs BPCs;
+
+  RefinementProblem ReplacePhi(souper::InstContext &IC, std::map<Block *, size_t> &Change) {
+    std::map<souper::Block *, std::set<souper::Inst *>> Phis;
+    collectPhis(LHS, Phis);
+    collectPhis(Pre, Phis);
+    for (auto &BPC : BPCs) {
+      collectPhis(BPC.PC.LHS, Phis);
+    }
+
+    if (Phis.empty()) {
+      return *this; // Base case, no more Phis
+    }
+
+    std::map<Inst *, Inst *> InstCache;
+    for (auto Pair : Phis) {
+      for (auto Phi : Pair.second) {
+        InstCache[Phi] = Phi->Ops[Change[Pair.first]];
+      }
+    }
+    std::map<Block *, Block *> BlockCache;
+    std::map<Inst *, llvm::APInt> ConstMap;
+    RefinementProblem Result;
+    Result.LHS = getInstCopy(LHS, IC, InstCache, BlockCache, &ConstMap, false);
+    Result.RHS = getInstCopy(RHS, IC, InstCache, BlockCache, &ConstMap, false);
+    Result.Pre = getInstCopy(Pre, IC, InstCache, BlockCache, &ConstMap, false);
+    Result.BPCs = BPCs;
+    for (auto &BPC : Result.BPCs) {
+      BPC.PC.LHS = getInstCopy(BPC.PC.LHS, IC, InstCache, BlockCache,
+                               &ConstMap, false);
+    }
+
+    // Recursively call ReplacePhi, because Result might have Phi`s
+    return Result.ReplacePhi(IC, Change);
+  }
+  bool operator == (const RefinementProblem &P) const {
+    if (LHS == P.LHS && RHS == P.RHS &&
+        Pre == P.Pre && BPCs.size() == P.BPCs.size()) {
+      for (size_t i = 0; i < BPCs.size(); ++i) {
+        if (BPCs[i].B != P.BPCs[i].B ||
+            BPCs[i].PC.LHS != P.BPCs[i].PC.LHS ||
+            BPCs[i].PC.RHS != P.BPCs[i].PC.RHS) {
+          return false;
+        }
+      }
+      return true;
+    } else {
+      return false;
+    }
+  }
+  struct Hash
+  {
+    std::size_t operator()(const RefinementProblem &P) const
+    {
+      return std::hash<Inst *>()(P.LHS)
+             ^ std::hash<Inst *>()(P.RHS) << 1
+             ^ std::hash<Inst *>()(P.Pre) << 2
+             ^ std::hash<size_t>()(P.BPCs.size());
+    }
+  };
+
+};
+
+std::unordered_set<RefinementProblem, RefinementProblem::Hash>
+  explodePhis(InstContext &IC, RefinementProblem P) {
+  std::map<souper::Block *, std::set<souper::Inst *>> Phis;
+  collectPhis(P.LHS, Phis);
+  collectPhis(P.Pre, Phis);
+
+  if (Phis.empty()) {
+    return {P};
+  }
+
+  std::vector<Block *> Blocks;
+  for (auto &&Pair : Phis) {
+    Blocks.push_back(Pair.first);
+  }
+
+  std::vector<std::map<Block *, size_t>> ChangeList;
+
+  for (size_t i = 0; i < Blocks.size(); ++i) { // Each block
+    if (i == 0) {
+      for (size_t j = 0; j < Blocks[i]->Preds; ++j) {
+        ChangeList.push_back({{Blocks[i], j}});
+      }
+    } else {
+      std::vector<std::map<Block *, size_t>> NewChangeList;
+      for (size_t j = 0; j < Blocks[i]->Preds; ++j) {
+        for (auto Change : ChangeList) {
+          Change.insert({Blocks[i], j});
+          NewChangeList.push_back(Change);
+        }
+      }
+      std::swap(ChangeList, NewChangeList);
+    }
+  }
+
+  std::unordered_set<RefinementProblem, RefinementProblem::Hash> Result;
+
+  for (auto Change : ChangeList) {
+    auto Goal = P.ReplacePhi(IC, Change);
+    // Consider switching to better data structures for dealing with BPCs
+    for (auto &[Block, Pred] : Change) {
+      for (auto &BPC : Goal.BPCs) {
+        if (BPC.B == Block && BPC.PredIdx == Pred) {
+          auto Ante = IC.getInst(Inst::Eq, 1, {BPC.PC.LHS, BPC.PC.RHS});
+          Goal.Pre = IC.getInst(Inst::And, 1, {Goal.Pre, Ante});
+        }
+      }
+    }
+    Result.insert(Goal);
+  }
+  return Result;
+}
+
+}
+bool souper::isTransformationValid(souper::Inst *LHS, souper::Inst *RHS,
                                    const std::vector<InstMapping> &PCs,
+                                   const souper::BlockPCs &BPCs,
                                    InstContext &IC) {
   Inst *Ante = IC.getConst(llvm::APInt(1, true));
   for (auto PC : PCs ) {
     Inst *Eq = IC.getInst(Inst::Eq, 1, {PC.LHS, PC.RHS});
     Ante = IC.getInst(Inst::And, 1, {Ante, Eq});
   }
-  AliveDriver Verifier(LHS, Ante, IC);
-  return Verifier.verify(RHS);
+
+  auto Goals = explodePhis(IC, {LHS, RHS, Ante, BPCs});
+  // Alive2 and Souper have different PHI semantics.
+  // The current solution decomposes problems with PHI nodes into
+  // simpler problems without PHI.
+  // Example: f(x, y) = phi %block, %x, %y is decomposed into two functions:
+  // * f_1(x, y) = %x
+  // * f_2(x, y) = %y
+
+  if (SkipAliveSolver)
+    return false;
+  if (DebugLevel > 3)
+    llvm::errs() << "Number of sub-goals : " << Goals.size() << "\n";
+  for (auto Goal : Goals) {
+    if (DebugLevel > 3) {
+      llvm::errs() << "Goal:\n";
+      ReplacementContext RC;
+      RC.printInst(Goal.LHS, llvm::errs(), true);
+      llvm::errs() << "\n------\n";
+    }
+    std::vector<Inst *> Vars;
+    findVars(Goal.RHS, Vars);
+    AliveDriver Verifier(Goal.LHS, Goal.Pre, IC, Vars);
+    if (!Verifier.verify(Goal.RHS, Goal.Pre))
+      return false;
+  }
+  return true;
 }
 
 

@@ -645,7 +645,8 @@ Inst *InstContext::createVar(unsigned Width, llvm::StringRef Name,
                              llvm::ConstantRange Range,
                              llvm::APInt Zero, llvm::APInt One, bool NonZero,
                              bool NonNegative, bool PowOfTwo, bool Negative,
-                             unsigned NumSignBits, unsigned SynthesisConstID) {
+                             unsigned NumSignBits, llvm::APInt DemandedBits,
+                             unsigned SynthesisConstID) {
   // Create a new vector of Insts if Width is not found in VarInstsByWidth
   auto &InstList = VarInstsByWidth[Width];
   unsigned Number = InstList.size();
@@ -665,6 +666,7 @@ Inst *InstContext::createVar(unsigned Width, llvm::StringRef Name,
   I->PowOfTwo = PowOfTwo;
   I->Negative = Negative;
   I->NumSignBits = NumSignBits;
+  I->DemandedBits = DemandedBits;
   I->SynthesisConstID = SynthesisConstID;
   return I;
 }
@@ -673,7 +675,8 @@ Inst *InstContext::createVar(unsigned Width, llvm::StringRef Name) {
   return createVar(Width, Name, /*Range=*/llvm::ConstantRange(Width, /*isFullSet=*/ true),
                     /*KnownZero=*/ llvm::APInt(Width, 0), /*KnownOne=*/ llvm::APInt(Width, 0),
                     /*NonZero=*/ false, /*NonNegative=*/ false, /*PowerOfTwo=*/ false,
-                    /*Negative=*/ false, /*SignBits=*/ 1, /*SynthesisConstID=*/0);
+                    /*Negative=*/ false, /*SignBits=*/ 1,
+                    /*DemandedBits=*/llvm::APInt::getAllOnesValue(Width), /*SynthesisConstID=*/0);
 }
 
 Inst *InstContext::createSynthesisConstant(unsigned Width, unsigned SynthesisConstID) {
@@ -681,7 +684,8 @@ Inst *InstContext::createSynthesisConstant(unsigned Width, unsigned SynthesisCon
                    /*Range=*/llvm::ConstantRange(Width, /*isFullSet=*/ true),
                    /*KnownZero=*/ llvm::APInt(Width, 0), /*KnownOne=*/ llvm::APInt(Width, 0),
                    /*NonZero=*/ false, /*NonNegative=*/ false, /*PowerOfTwo=*/ false,
-                   /*Negative=*/ false, /*SignBits=*/ 1, /*SynthesisConstID=*/SynthesisConstID);
+                   /*Negative=*/ false, /*SignBits=*/ 1,
+                   /*DemandedBits=*/llvm::APInt::getAllOnesValue(Width), /*SynthesisConstID=*/SynthesisConstID);
 }
 
 
@@ -915,19 +919,12 @@ int Inst::getCost(Inst::Kind K) {
     case Var:
     case Const:
     case UntypedConst:
-    case Phi:
     case SAddO:
     case UAddO:
     case SSubO:
     case USubO:
     case SMulO:
     case UMulO:
-    case SAddWithOverflow:
-    case UAddWithOverflow:
-    case SSubWithOverflow:
-    case USubWithOverflow:
-    case SMulWithOverflow:
-    case UMulWithOverflow:
       return 0;
     case BitReverse:
     case BSwap:
@@ -1216,6 +1213,7 @@ Inst *souper::getInstCopy(Inst *I, InstContext &IC,
         Copy = IC.createVar(I->Width, I->Name, I->Range, I->KnownZeros,
                             I->KnownOnes, I->NonZero, I->NonNegative,
                             I->PowOfTwo, I->Negative, I->NumSignBits,
+                            I->DemandedBits,
                             I->SynthesisConstID);
       else {
         Copy = I;
@@ -1261,6 +1259,7 @@ Inst *souper::instJoin(Inst *I, Inst *EmptyInst, Inst *NewInst,
       Copy = IC.createVar(I->Width, I->Name, I->Range, I->KnownZeros,
                           I->KnownOnes, I->NonZero, I->NonNegative,
                           I->PowOfTwo, I->Negative, I->NumSignBits,
+                          I->DemandedBits,
                           I->SynthesisConstID);
     } else {
       Copy = I;
@@ -1284,10 +1283,13 @@ void souper::separateBlockPCs(const BlockPCs &BPCs, BlockPCs &BPCsCopy,
                               bool CloneVars) {
   for (const auto &BPC : BPCs) {
     auto BPCCopy = BPC;
+    assert(BPC.B);
     assert(BlockCache[BPC.B]);
     BPCCopy.B = BlockCache[BPC.B];
-    BPCCopy.PC = InstMapping(getInstCopy(BPC.PC.LHS, IC, InstCache, BlockCache, ConstMap, CloneVars),
-                             getInstCopy(BPC.PC.RHS, IC, InstCache, BlockCache, ConstMap, CloneVars));
+    BPCCopy.PC = InstMapping(getInstCopy(BPC.PC.LHS, IC, InstCache, BlockCache,
+                                         ConstMap, CloneVars),
+                             getInstCopy(BPC.PC.RHS, IC, InstCache, BlockCache,
+                                         ConstMap, CloneVars));
     BPCsCopy.emplace_back(BPCCopy);
   }
 }
@@ -1300,8 +1302,10 @@ void souper::separatePCs(const std::vector<InstMapping> &PCs,
                          std::map<Inst *, llvm::APInt> *ConstMap,
                          bool CloneVars) {
   for (const auto &PC : PCs)
-    PCsCopy.emplace_back(getInstCopy(PC.LHS, IC, InstCache, BlockCache, ConstMap, CloneVars),
-                         getInstCopy(PC.RHS, IC, InstCache, BlockCache, ConstMap, CloneVars));
+    PCsCopy.emplace_back(getInstCopy(PC.LHS, IC, InstCache, BlockCache,
+                                     ConstMap, CloneVars),
+                         getInstCopy(PC.RHS, IC, InstCache, BlockCache,
+                                     ConstMap, CloneVars));
 }
 
 

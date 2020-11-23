@@ -20,6 +20,7 @@ use Redis;
 use Getopt::Long;
 use File::Temp;
 use Time::HiRes;
+use BSD::Resource;
 
 eval { require Sys::CPU; Sys::CPU->import(); };
 
@@ -48,21 +49,13 @@ GetOptions(
     "verbose" => \$VERBOSE,
     ) or usage();
 
-my $need_solver = <<END;
-$0 requires the SOUPER_SOLVER environment variable to be defined, e.g. as
--stp-path=/path/to/stp
-END
-my $solver = $ENV{"SOUPER_SOLVER"};
-die $need_solver unless $solver;
-
 my $OPTS = "";
-$OPTS .= "-souper-infer-iN " if $ENV{"SOUPER_INFER_INT"};
 
-$OPTS .= "-souper-synthesis-wiring-iterations=30 ";
-$OPTS .= "-souper-infer-inst ";
-$OPTS .= "-souper-synthesis-comps=mul,select,const,const,shl,lshr,ashr,and,or,xor,add,sub,slt,ult,sle,ule,eq,ne";
+$OPTS .= "-souper-double-check ";
+$OPTS .= "-souper-dataflow-pruning ";
+$OPTS .= "-souper-enumerative-synthesis-max-instructions=1 ";
 
-my $check = "@CMAKE_BINARY_DIR@/souper-check -solver-timeout=15 ${solver}";
+my $check = "@CMAKE_BINARY_DIR@/souper-check -solver-timeout=15";
 
 my $r = Redis->new();
 $r->ping || die "no server?";
@@ -76,7 +69,8 @@ sub infer($) {
     print STDERR "\n$k\n\n";
     print STDERR "$cmd\n";
     $fh->flush();
-    open INF, "$cmd < $tmpfn |";
+    open(my $foo, '>>', 'fail.txt');
+    open INF, "$cmd < $tmpfn |" or print $foo "$k\n";;
     my $ok = 0;
     my $failed = 0;
     my $output = "";

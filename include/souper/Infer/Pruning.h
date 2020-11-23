@@ -60,6 +60,7 @@ private:
   HoleAnalysis HA;
   llvm::KnownBits LHSKnownBitsNoSpec;
   InputVarInfo LHSMustDemandedBits;
+  bool EnableDemandedBitsPruning = false;
   bool LHSHasPhi = false;
   std::unordered_map<Inst *, ExprInfo> LHSInfo;
 
@@ -70,8 +71,10 @@ private:
   std::vector<ValueCache> InputVals;
   std::vector<Inst *> &InputVars;
   std::vector<ValueCache> generateInputSets(std::vector<Inst *> &Inputs);
+  void setPhiConcretePreds(Inst *Root);
   // For the LHS contained in @SC, check if the given input in @Cache is valid.
   bool isInputValid(ValueCache &Cache);
+  void improveMustDemandedBits(InputVarInfo &IVI);
   Inst *Ante;
 };
 
