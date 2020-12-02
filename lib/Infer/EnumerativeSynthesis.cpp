@@ -34,7 +34,7 @@ using namespace souper;
 using namespace llvm;
 
 static const std::vector<Inst::Kind> UnaryOperators = {
-  Inst::CtPop, Inst::BSwap, Inst::BitReverse, Inst::Cttz, Inst::Ctlz, Inst::Freeze,
+  Inst::CtPop, Inst::BitReverse, Inst::Cttz, Inst::Ctlz,
   Inst::Not
 };
 
@@ -55,15 +55,10 @@ static const std::vector<Inst::Kind> BinaryOperators = {
    * Main overflow intrinsics like {S,U}{Add,Sub,Mul}WithOverflow below means synthesizing
    * extractvalue with index 0. On the other hand, synthesizing suboperations like {U,S}{Add,Sub,Mul}O
    * means synthesizing extractvalue with index 1. */
-  Inst::SAddWithOverflow, Inst::UAddWithOverflow,
-  Inst::SSubWithOverflow, Inst::USubWithOverflow,
-  Inst::SMulWithOverflow, Inst::UMulWithOverflow,
-  Inst::SAddO, Inst::UAddO, Inst::SSubO,
-  Inst::USubO, Inst::SMulO, Inst::UMulO
 };
 
 static const std::vector<Inst::Kind> TernaryOperators = {
-  Inst::Select, Inst::FShl, Inst::FShr
+  Inst::Select
 };
 
 namespace {
